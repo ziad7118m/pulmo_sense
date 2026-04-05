@@ -1,0 +1,82 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/core/constants/app_strings.dart';
+import 'package:lung_diagnosis_app/core/widgets/text_field.dart';
+import 'package:lung_diagnosis_app/features/articles/presentation/widgets/add_article_author_card.dart';
+import 'package:lung_diagnosis_app/features/articles/presentation/widgets/article_images_picker_card.dart';
+
+class ArticleComposeForm extends StatelessWidget {
+  final String doctorName;
+  final String avatarPath;
+  final TextEditingController titleController;
+  final TextEditingController contentController;
+  final List<File> images;
+  final int maxImages;
+  final VoidCallback onAddImages;
+  final ValueChanged<int> onRemoveImageAt;
+
+  const ArticleComposeForm({
+    super.key,
+    required this.doctorName,
+    required this.avatarPath,
+    required this.titleController,
+    required this.contentController,
+    required this.images,
+    required this.maxImages,
+    required this.onAddImages,
+    required this.onRemoveImageAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AddArticleAuthorCard(
+          doctorName: doctorName,
+          avatarPath: avatarPath,
+          onAddImages: onAddImages,
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Article details',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: scheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        CustomTextField(
+          labelText: AppStrings.title,
+          controller: titleController,
+        ),
+        const SizedBox(height: 14),
+        CustomTextField(
+          labelText: AppStrings.addArticleBox,
+          controller: contentController,
+          maxLines: 9,
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Image preview',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: scheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ArticleImagesPickerCard(
+          images: images,
+          maxImages: maxImages,
+          onAddImages: onAddImages,
+          onRemoveImageAt: onRemoveImageAt,
+        ),
+      ],
+    );
+  }
+}

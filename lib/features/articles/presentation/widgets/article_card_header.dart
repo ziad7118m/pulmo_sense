@@ -1,0 +1,137 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+
+class ArticleCardHeader extends StatelessWidget {
+  final String doctorImage;
+  final String doctorName;
+  final bool showHiddenBadge;
+  final bool isHiddenByAdmin;
+  final bool showOwnerDelete;
+  final VoidCallback? onDelete;
+
+  const ArticleCardHeader({
+    super.key,
+    required this.doctorImage,
+    required this.doctorName,
+    required this.showHiddenBadge,
+    required this.isHiddenByAdmin,
+    required this.showOwnerDelete,
+    this.onDelete,
+  });
+
+  bool _hasFile(String path) {
+    return path.trim().isNotEmpty &&
+        (path.startsWith('assets/') || File(path).existsSync());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final hasDoctorImage = _hasFile(doctorImage);
+
+    return Row(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: scheme.primary.withOpacity(0.12)),
+          ),
+          child: CircleAvatar(
+            radius: 18,
+            backgroundColor: scheme.primaryContainer,
+            backgroundImage: hasDoctorImage
+                ? (doctorImage.startsWith('assets/')
+                        ? AssetImage(doctorImage)
+                        : FileImage(File(doctorImage))
+                    as ImageProvider)
+                : null,
+            child: hasDoctorImage
+                ? null
+                : Icon(
+                    Icons.person,
+                    size: 18,
+                    color: scheme.primary,
+                  ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                doctorName,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Medical article',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (showHiddenBadge && isHiddenByAdmin)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: scheme.errorContainer,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              'Hidden',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: scheme.onErrorContainer,
+              ),
+            ),
+          ),
+        if (showOwnerDelete)
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (value) {
+              if (value == 'delete' && onDelete != null) {
+                onDelete!();
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline_rounded),
+                    SizedBox(width: 10),
+                    Text('Delete'),
+                  ],
+                ),
+              ),
+            ],
+            child: Container(
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: scheme.surfaceVariant.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.more_horiz_rounded,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
