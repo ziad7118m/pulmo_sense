@@ -30,7 +30,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href /REPO_NAME/
+        run: flutter build web --release --base-href /pulmo_sense/
 
       - name: Disable Jekyll
         run: touch build/web/.nojekyll
