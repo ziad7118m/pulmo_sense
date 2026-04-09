@@ -4,7 +4,6 @@ import 'package:lung_diagnosis_app/features/auth/data/datasources/auth_remote_da
 import 'package:lung_diagnosis_app/features/auth/data/dtos/forgot_password_request_dto.dart';
 import 'package:lung_diagnosis_app/features/auth/data/dtos/password_reset_challenge_dto.dart';
 import 'package:lung_diagnosis_app/features/auth/data/dtos/reset_password_request_dto.dart';
-import 'package:lung_diagnosis_app/features/auth/data/dtos/verify_reset_code_request_dto.dart';
 import 'package:lung_diagnosis_app/features/auth/domain/entities/password_reset_challenge.dart';
 
 class PasswordResetRemoteDataSource {
@@ -30,12 +29,10 @@ class PasswordResetRemoteDataSource {
     required String emailOrPhone,
     required String code,
   }) {
-    return _authRemoteDataSource.verifyResetCode(
-      VerifyResetCodeRequestDto(
-        emailOrPhone: emailOrPhone,
-        code: code,
-      ),
-    );
+    // Backend validates the OTP again inside ResetPassword and marks it used there.
+    // Returning success here keeps the Flutter flow compatible until the backend exposes
+    // a dedicated non-consuming reset verification endpoint.
+    return Future.value(const Success<Unit>(Unit.value));
   }
 
   Future<Result<Unit>> resetPassword({

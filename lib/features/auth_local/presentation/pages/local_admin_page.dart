@@ -59,6 +59,7 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isApiMode = _controller.isApiMode;
 
     return PopScope(
       canPop: false,
@@ -145,13 +146,15 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 24,
-                            height: 1.2,
                             fontWeight: FontWeight.w900,
+                            height: 1.15,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         Text(
-                          'This admin console now gives you a cleaner overview of user states, content visibility, and the most important queues that need review.',
+                          isApiMode
+                              ? 'This backend currently exposes the pending users queue plus approve/reject actions.'
+                              : 'Review each queue, open a profile, and take action with confidence.',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.92),
                             height: 1.35,
@@ -160,70 +163,88 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  const _SectionTitle(
-                    title: 'Operational overview',
-                    subtitle: 'Quick numbers for accounts and content visibility.',
-                  ),
-                  const SizedBox(height: 12),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final crossAxisCount = width >= 1180
-                          ? 4
-                          : width >= 820
-                              ? 3
-                              : 2;
-                      final ratio = width >= 1180
-                          ? 1.28
-                          : width >= 820
-                              ? 1.12
-                              : 0.92;
-
-                      return GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: ratio,
+                  if (isApiMode) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: scheme.outlineVariant.withOpacity(0.7)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AdminDashboardStatCard(
-                            title: 'Pending',
-                            value: '${data.pending}',
-                            subtitle: 'Need review',
-                            icon: Icons.how_to_reg_rounded,
-                            accentColor: const Color(0xFFFFA000),
-                          ),
-                          AdminDashboardStatCard(
-                            title: 'Approved',
-                            value: '${data.approved}',
-                            subtitle: 'Active accounts',
-                            icon: Icons.verified_user_rounded,
-                            accentColor: const Color(0xFF1976D2),
-                          ),
-                          AdminDashboardStatCard(
-                            title: 'Disabled',
-                            value: '${data.disabled}',
-                            subtitle: 'Temporarily blocked',
-                            icon: Icons.lock_outline_rounded,
-                            accentColor: const Color(0xFF546E7A),
-                          ),
-                          AdminDashboardStatCard(
-                            title: 'Rejected',
-                            value: '${data.rejected}',
-                            subtitle: 'Closed requests',
-                            icon: Icons.block_rounded,
-                            accentColor: const Color(0xFFD32F2F),
+                          Icon(Icons.info_outline_rounded, color: scheme.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Active, disabled, rejected, doctor, and patient queues still need backend endpoints before they can be connected in the app.',
+                              style: TextStyle(
+                                color: scheme.onSurface,
+                                height: 1.3,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ],
-                      );
-                    },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  _SectionTitle(
+                    title: 'User overview',
+                    subtitle: isApiMode
+                        ? 'API-backed moderation data available right now.'
+                        : 'Review how the user queues are evolving.',
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: isApiMode ? 1 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: isApiMode ? 2.4 : 1.3,
+                    children: [
+                      AdminDashboardStatCard(
+                        title: 'Pending',
+                        value: '${data.pending}',
+                        subtitle: 'Need review',
+                        icon: Icons.how_to_reg_rounded,
+                        accentColor: const Color(0xFFFFA000),
+                      ),
+                      if (!isApiMode) ...[
+                        AdminDashboardStatCard(
+                          title: 'Approved',
+                          value: '${data.approved}',
+                          subtitle: 'Active accounts',
+                          icon: Icons.verified_user_rounded,
+                          accentColor: const Color(0xFF1976D2),
+                        ),
+                        AdminDashboardStatCard(
+                          title: 'Disabled',
+                          value: '${data.disabled}',
+                          subtitle: 'Temporarily blocked',
+                          icon: Icons.lock_outline_rounded,
+                          accentColor: const Color(0xFF546E7A),
+                        ),
+                        AdminDashboardStatCard(
+                          title: 'Rejected',
+                          value: '${data.rejected}',
+                          subtitle: 'Closed requests',
+                          icon: Icons.block_rounded,
+                          accentColor: const Color(0xFFD32F2F),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 18),
                   _SectionTitle(
                     title: 'User segments',
-                    subtitle: 'Open the exact queue you want to inspect next.',
+                    subtitle: isApiMode
+                        ? 'Open the pending queue to approve or reject signup requests.'
+                        : 'Open the exact queue you want to inspect next.',
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
@@ -231,7 +252,7 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        '${viewData.totalActiveUsers} active users',
+                        isApiMode ? '${data.pending} pending users' : '${viewData.totalActiveUsers} active users',
                         style: TextStyle(
                           color: scheme.primary,
                           fontWeight: FontWeight.w800,
@@ -240,41 +261,27 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final crossAxisCount = width >= 1180
-                          ? 3
-                          : width >= 760
-                              ? 2
-                              : 1;
-                      const spacing = 12.0;
-                      final itemWidth = (width - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
-                      final ratio = itemWidth / 165;
-
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: tiles.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: spacing,
-                          mainAxisSpacing: spacing,
-                          childAspectRatio: ratio,
-                        ),
-                        itemBuilder: (context, index) => AdminHomeTile(data: tiles[index]),
-                      );
-                    },
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: tiles.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isApiMode ? 1 : (MediaQuery.of(context).size.width >= 760 ? 2 : 1),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: isApiMode ? 2.6 : 1.45,
+                    ),
+                    itemBuilder: (context, index) => AdminHomeTile(data: tiles[index]),
                   ),
                   const SizedBox(height: 18),
                   _SectionTitle(
-                    title: 'Content visibility',
-                    subtitle: 'How articles are currently moderated.',
+                    title: 'Content insights',
+                    subtitle: 'Article moderation stats available in the app.',
                   ),
                   const SizedBox(height: 12),
                   AdminInsightPanel(
-                    title: 'Article moderation snapshot',
-                    subtitle: 'Use this to monitor what is visible versus hidden before reviewing a doctor profile.',
+                    title: 'Content insights',
+                    subtitle: 'Article moderation stats available in the app.',
                     items: insightItems,
                   ),
                 ],
@@ -302,7 +309,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
@@ -312,8 +319,8 @@ class _SectionTitle extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontWeight: FontWeight.w900,
                   fontSize: 18,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 4),
@@ -321,7 +328,7 @@ class _SectionTitle extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  height: 1.25,
+                  height: 1.3,
                 ),
               ),
             ],
@@ -335,4 +342,3 @@ class _SectionTitle extends StatelessWidget {
     );
   }
 }
-

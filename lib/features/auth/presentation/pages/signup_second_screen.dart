@@ -6,7 +6,9 @@ import 'package:lung_diagnosis_app/core/widgets/app_top_message.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/helpers/signup_register_request_builder.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/models/signup_profile_seed.dart';
-import 'package:lung_diagnosis_app/features/auth/presentation/pages/login_screen.dart';
+import 'package:lung_diagnosis_app/features/auth/presentation/pages/signup_otp_verification_screen.dart';
+import 'package:lung_diagnosis_app/core/storage/app_storage.dart';
+import 'package:lung_diagnosis_app/core/storage/keys.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/widgets/auth_submit_section.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/widgets/signup_credentials_section.dart';
 import 'package:lung_diagnosis_app/shared/domain/enums/user_role.dart';
@@ -65,34 +67,64 @@ class _SignupSecondScreenState extends State<SignupSecondScreen> {
 
     final role = widget.isDoctor ? UserRole.doctor : UserRole.patient;
 
-    setState(() => _isLoading = true);
+    try {
+      setState(() => _isLoading = true);
 
-    final request = _requestBuilder.build(
-      seed: widget.profileSeed,
-      role: role,
-      email: _emailController.text,
-      password: password,
-      doctorLicense: _licenseController.text,
-    );
+      final request = _requestBuilder.build(
+        seed: widget.profileSeed,
+        role: role,
+        email: _emailController.text,
+        password: password,
+        confirmPassword: confirm,
+        doctorLicense: _licenseController.text,
+      );
 
-    final ok = await auth.register(request);
+      final ok = await auth.register(request);
 
-    setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (!ok || !mounted) {
-      AppTopMessage.error(context, auth.error ?? 'Signup failed');
-      return;
+      if (!ok) {
+        AppTopMessage.error(
+          context,
+          auth.error ?? 'Signup failed. Please review your data and try again.',
+        );
+        return;
+      }
+
+      await AppStorage.setString(
+        StorageKeys.pendingVerificationEmail,
+        _emailController.text.trim(),
+      );
+      await AppStorage.setBool(
+        StorageKeys.pendingVerificationIsDoctor,
+        widget.isDoctor,
+      );
+
+      if (!mounted) return;
+
+      AppTopMessage.success(
+        context,
+        'Account created. Enter the OTP sent to your email to activate the account.',
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SignupOtpVerificationScreen(
+            email: _emailController.text.trim(),
+            isDoctor: widget.isDoctor,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      AppTopMessage.error(
+        context,
+        auth.error ?? 'An unexpected error occurred while creating the account.',
+      );
     }
-
-    AppTopMessage.success(
-      context,
-      'Account created. Waiting for admin approval.',
-    );
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
   }
 
   @override

@@ -16,13 +16,20 @@ class AuthUserDto {
   });
 
   factory AuthUserDto.fromJson(Map<String, dynamic> json) {
+    final role = (json['role'] ?? json['userType'] ?? 'Patient').toString();
+    final statusRaw = (json['status'] ?? json['userStatus'] ?? 'Pending').toString();
     return AuthUserDto(
-      id: (json['id'] ?? '').toString(),
-      email: (json['email'] ?? '').toString(),
-      displayName: (json['displayName'] ?? json['name'] ?? '').toString(),
-      role: (json['role'] ?? 'patient').toString(),
-      status: (json['status'] ?? 'pending').toString(),
-      createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()),
+      id: (json['id'] ?? json['userId'] ?? json['Id'] ?? json['UserId'] ?? '').toString(),
+      email: (json['email'] ?? json['Email'] ?? '').toString(),
+      displayName: (json['displayName'] ??
+              json['name'] ??
+              json['userName'] ??
+              json['Name'] ??
+              json['UserName'] ??
+              '').toString(),
+      role: role,
+      status: statusRaw,
+      createdAt: DateTime.tryParse((json['createdAt'] ?? json['CreatedAt'] ?? '').toString()),
     );
   }
 }

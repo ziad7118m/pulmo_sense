@@ -4,6 +4,6 @@ class RefreshRequestDto {
   const RefreshRequestDto({required this.refreshToken});
 
   Map<String, dynamic> toJson() => {
-        'refreshToken': refreshToken,
+        'token': refreshToken,
       };
 }

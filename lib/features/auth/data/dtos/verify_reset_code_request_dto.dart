@@ -9,7 +9,7 @@ class VerifyResetCodeRequestDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'emailOrPhone': emailOrPhone.trim(),
+      'email': emailOrPhone.trim(),
       'code': code.trim(),
     };
   }

@@ -157,14 +157,19 @@ class AuthController extends ChangeNotifier {
     final result = await _repository.register(request);
     _setLoading(false);
 
-    if (result is FailureResult<AuthUser>) {
-      _error = result.failure.message;
-      notifyListeners();
-      return false;
-    }
+    var ok = false;
+    result.when(
+      success: (_) {
+        _error = null;
+        ok = true;
+      },
+      failure: (failure) {
+        _error = failure.message;
+      },
+    );
 
     notifyListeners();
-    return true;
+    return ok;
   }
 
   Future<void> logout() async {

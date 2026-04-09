@@ -19,19 +19,47 @@ class AuthRemoteDataSource {
 
   const AuthRemoteDataSource(this._client);
 
+  static const Map<String, dynamic> _publicAuthExtra = {
+    'skipAuthorization': true,
+    'skipAuthRefresh': true,
+  };
+
   Future<Result<LoginResponseDto>> login(LoginRequestDto request) {
     return _client.post<LoginResponseDto>(
       Endpoints.login,
       body: request.toJson(),
-      decode: (data) => LoginResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      extra: _publicAuthExtra,
+      decode: (data) => LoginResponseDto.fromJson(Map<String, dynamic>.from((data ?? const <String, dynamic>{}) as Map)),
     );
   }
 
-  Future<Result<AuthUserDto>> register(RegisterRequestDto request) {
-    return _client.post<AuthUserDto>(
-      Endpoints.register,
+  Future<Result<String>> register(RegisterRequestDto request) {
+    return _client.post<String>(
+      request.endpoint,
       body: request.toJson(),
-      decode: (data) => AuthUserDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      extra: _publicAuthExtra,
+      decode: (data) => (data ?? '').toString(),
+    );
+  }
+
+  Future<Result<Unit>> sendOtp(String email) {
+    return _client.post<Unit>(
+      Endpoints.sendOtp,
+      body: ForgotPasswordRequestDto(emailOrPhone: email).toJson(),
+      extra: _publicAuthExtra,
+      decode: (_) => Unit.value,
+    );
+  }
+
+  Future<Result<Unit>> verifyOtp({
+    required String email,
+    required String code,
+  }) {
+    return _client.post<Unit>(
+      Endpoints.verifyOtp,
+      body: VerifyResetCodeRequestDto(emailOrPhone: email, code: code).toJson(),
+      extra: _publicAuthExtra,
+      decode: (_) => Unit.value,
     );
   }
 
@@ -39,20 +67,32 @@ class AuthRemoteDataSource {
     return _client.post<LoginResponseDto>(
       Endpoints.refresh,
       body: request.toJson(),
-      decode: (data) => LoginResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      extra: _publicAuthExtra,
+      decode: (data) => LoginResponseDto.fromJson(Map<String, dynamic>.from((data ?? const <String, dynamic>{}) as Map)),
     );
   }
 
   Future<Result<AuthUserDto>> me() {
     return _client.get<AuthUserDto>(
       Endpoints.me,
-      decode: (data) => AuthUserDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      decode: (data) {
+        final map = Map<String, dynamic>.from(data as Map);
+        return AuthUserDto(
+          id: (map['id'] ?? map['userId'] ?? map['Id'] ?? map['UserId'] ?? '').toString(),
+          email: (map['email'] ?? map['Email'] ?? '').toString(),
+          displayName: (map['name'] ?? map['userName'] ?? map['displayName'] ?? map['UserName'] ?? '').toString(),
+          role: (map['role'] ?? map['userType'] ?? 'Patient').toString(),
+          status: (map['status'] ?? map['userStatus'] ?? 'Active').toString(),
+        );
+      },
     );
   }
 
-  Future<Result<Unit>> logout() {
+  Future<Result<Unit>> logout(String refreshToken) {
     return _client.post<Unit>(
       Endpoints.logout,
+      body: RefreshRequestDto(refreshToken: refreshToken).toJson(),
+      extra: _publicAuthExtra,
       decode: (_) => Unit.value,
     );
   }
@@ -61,40 +101,30 @@ class AuthRemoteDataSource {
     UserAccountStatus? status,
     UserRole? role,
   }) {
+    final shouldUsePendingEndpoint =
+        status == UserAccountStatus.pending && role == null;
+
     return _client.get<List<AuthUserDto>>(
-      Endpoints.adminUsers,
-      query: {
-        if (status != null) 'status': status.apiValue,
-        if (role != null) 'role': role.apiValue,
-      },
+      shouldUsePendingEndpoint ? Endpoints.pendingUsers : Endpoints.allUsers,
       decode: (data) {
         final list = _extractList(data);
-        return list
+        final users = list
             .map((item) => AuthUserDto.fromJson(Map<String, dynamic>.from(item as Map)))
             .toList(growable: false);
+
+        return users.where((user) {
+          final parsedStatus = UserAccountStatusX.fromValue(user.status);
+          final parsedRole = UserRoleX.fromValue(user.role);
+          final matchesStatus = status == null || parsedStatus == status;
+          final matchesRole = role == null || parsedRole == role;
+          return matchesStatus && matchesRole;
+        }).toList(growable: false);
       },
     );
   }
 
   Future<Result<AuthUserDto?>> findApprovedPatientById(String userId) {
-    final normalized = userId.trim();
-    if (normalized.isEmpty) {
-      return Future.value(const Success<AuthUserDto?>(null));
-    }
-
-    return _client.get<AuthUserDto?>(
-      Endpoints.adminUsers,
-      query: {
-        'status': UserAccountStatus.approved.apiValue,
-        'role': UserRole.patient.apiValue,
-        'userId': normalized,
-      },
-      decode: (data) {
-        final list = _extractList(data);
-        if (list.isEmpty) return null;
-        return AuthUserDto.fromJson(Map<String, dynamic>.from(list.first as Map));
-      },
-    );
+    return Future.value(const Success<AuthUserDto?>(null));
   }
 
   Future<Result<AuthUserDto?>> findApprovedPatientByNationalId(String nationalId) {
@@ -124,29 +154,28 @@ class AuthRemoteDataSource {
   }
 
   Future<Result<Unit>> approveUser(String id, {UserRole? role}) {
-    return _client.post<Unit>(
+    return _client.put<Unit>(
       Endpoints.approveUser(id),
-      body: role == null ? null : {'role': role.apiValue},
       decode: (_) => Unit.value,
     );
   }
 
   Future<Result<Unit>> rejectUser(String id) {
-    return _client.post<Unit>(
+    return _client.put<Unit>(
       Endpoints.rejectUser(id),
       decode: (_) => Unit.value,
     );
   }
 
   Future<Result<Unit>> disableUser(String id) {
-    return _client.post<Unit>(
+    return _client.put<Unit>(
       Endpoints.disableUser(id),
       decode: (_) => Unit.value,
     );
   }
 
   Future<Result<Unit>> enableUser(String id) {
-    return _client.post<Unit>(
+    return _client.put<Unit>(
       Endpoints.enableUser(id),
       decode: (_) => Unit.value,
     );
@@ -165,6 +194,7 @@ class AuthRemoteDataSource {
     return _client.post<PasswordResetChallengeDto>(
       Endpoints.forgotPassword,
       body: request.toJson(),
+      extra: _publicAuthExtra,
       decode: (data) {
         if (data is Map) {
           return PasswordResetChallengeDto.fromJson(Map<String, dynamic>.from(data));
@@ -178,6 +208,7 @@ class AuthRemoteDataSource {
     return _client.post<Unit>(
       Endpoints.verifyResetCode,
       body: request.toJson(),
+      extra: _publicAuthExtra,
       decode: (_) => Unit.value,
     );
   }
@@ -186,6 +217,7 @@ class AuthRemoteDataSource {
     return _client.post<Unit>(
       Endpoints.resetPassword,
       body: request.toJson(),
+      extra: _publicAuthExtra,
       decode: (_) => Unit.value,
     );
   }

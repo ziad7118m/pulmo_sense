@@ -9,7 +9,12 @@ import 'package:lung_diagnosis_app/shared/domain/enums/user_role.dart';
 
 abstract class AuthRepository {
   Future<Result<AuthSession>> login(LoginCredentials credentials);
-  Future<Result<AuthUser>> register(RegisterAccountRequest request);
+  Future<Result<String>> register(RegisterAccountRequest request);
+  Future<Result<Unit>> sendEmailOtp(String email);
+  Future<Result<Unit>> verifyEmailOtp({
+    required String email,
+    required String code,
+  });
   Future<Result<AuthSession>> refreshSession();
   Future<Result<AuthSession>> restoreSession();
   Future<Result<AuthUser>> fetchCurrentUser();

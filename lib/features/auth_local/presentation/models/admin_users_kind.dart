@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lung_diagnosis_app/features/auth/domain/entities/auth_user.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 
+
 enum AdminUsersKind { pending, active, disabled, rejected, doctors, patients }
 
 extension AdminUsersKindX on AdminUsersKind {
@@ -95,15 +96,15 @@ extension AdminUsersKindX on AdminUsersKind {
       case AdminUsersKind.pending:
         return 'New signup requests will appear here.';
       case AdminUsersKind.active:
-        return 'Approved users will appear here.';
+        return 'Active users from the backend will appear here.';
       case AdminUsersKind.disabled:
-        return 'Disabled users will appear here.';
+        return 'Disabled users from the backend will appear here.';
       case AdminUsersKind.rejected:
-        return 'Rejected requests will appear here.';
+        return 'Rejected users from the backend will appear here.';
       case AdminUsersKind.doctors:
-        return 'Approved doctor accounts will appear here.';
+        return 'Doctor accounts from the backend will appear here.';
       case AdminUsersKind.patients:
-        return 'Approved patient accounts will appear here.';
+        return 'Patient accounts from the backend will appear here.';
     }
   }
 

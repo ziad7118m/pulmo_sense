@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/controllers/admin_users_page_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_users_kind.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_search_field.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_user_list_view.dart';
+import 'package:provider/provider.dart';
 
 class AdminUsersPage extends StatefulWidget {
   final AdminUsersKind kind;
@@ -40,6 +42,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final authController = context.watch<AuthController>();
 
     return AnimatedBuilder(
       animation: _pageController,
@@ -85,9 +88,18 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                           height: 1.28,
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Connected to the live admin API for this queue.',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                      ),
                       const SizedBox(height: 14),
                       AdminSearchField(controller: _searchController),
-                      if (_pageController.showRoleFilter(widget.kind)) ...[
+                      if (_pageController.showRoleFilter(widget.kind, isApiMode: authController.isApiMode)) ...[
                         const SizedBox(height: 12),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -126,7 +138,11 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                   emptyIcon: widget.kind.emptyIcon,
                   emptyTitle: widget.kind.emptyTitle,
                   emptyMessage: widget.kind.emptyMessage,
-                  extraFilter: (user) => _pageController.matchesRoleScope(user, widget.kind),
+                  extraFilter: (user) => _pageController.matchesRoleScope(
+                    user,
+                    widget.kind,
+                    isApiMode: authController.isApiMode,
+                  ),
                   buildActions: (context, user, controller) => _pageController.buildActions(
                     context,
                     kind: widget.kind,

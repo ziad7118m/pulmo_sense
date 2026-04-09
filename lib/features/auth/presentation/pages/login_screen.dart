@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lung_diagnosis_app/core/constants/app_strings.dart';
+import 'package:lung_diagnosis_app/core/storage/app_storage.dart';
+import 'package:lung_diagnosis_app/core/storage/keys.dart';
 import 'package:lung_diagnosis_app/core/widgets/app_bar.dart';
 import 'package:lung_diagnosis_app/core/widgets/app_top_message.dart';
 import 'package:lung_diagnosis_app/core/widgets/text_button.dart';
@@ -7,6 +9,7 @@ import 'package:lung_diagnosis_app/core/widgets/text_field.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/models/remembered_account_option.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/pages/forget_password_screen.dart';
+import 'package:lung_diagnosis_app/features/auth/presentation/pages/signup_otp_verification_screen.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/widgets/auth_account_prompt_row.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/widgets/auth_submit_section.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/widgets/remembered_accounts_sheet.dart';
@@ -75,26 +78,78 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
     final auth = context.read<AuthController>();
-    final ok = await auth.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
 
-    setState(() => _isLoading = false);
+    try {
+      setState(() => _isLoading = true);
 
-    if (!ok || !mounted) {
-      AppTopMessage.error(context, auth.error ?? 'Login failed');
-      return;
+      final ok = await auth.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (!ok) {
+        final pendingEmail = await AppStorage.getString(
+          StorageKeys.pendingVerificationEmail,
+        );
+        final pendingIsDoctor = await AppStorage.getBool(
+          StorageKeys.pendingVerificationIsDoctor,
+        );
+        final errorText = (auth.error ?? '').toLowerCase();
+        final requiresVerification =
+            errorText.contains('verify your email') ||
+            errorText.contains('email first') ||
+            errorText.contains('email not confirmed') ||
+            errorText.contains('email is not confirmed') ||
+            errorText.contains('otp');
+
+        final matchesPendingEmail = pendingEmail != null &&
+            pendingEmail.trim().toLowerCase() ==
+                _emailController.text.trim().toLowerCase();
+
+        if (requiresVerification || matchesPendingEmail) {
+          await AppStorage.setString(
+            StorageKeys.pendingVerificationEmail,
+            _emailController.text.trim(),
+          );
+
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SignupOtpVerificationScreen(
+                email: _emailController.text.trim(),
+                isDoctor: pendingIsDoctor,
+              ),
+            ),
+          );
+          return;
+        }
+
+        AppTopMessage.error(
+          context,
+          auth.error ?? 'Login failed. Please check your credentials and try again.',
+        );
+        return;
+      }
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.authGate,
+        (route) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      AppTopMessage.error(
+        context,
+        auth.error ?? 'An unexpected error occurred while logging in.',
+      );
     }
-
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.authGate,
-      (route) => false,
-    );
   }
 
   void _openForgotPassword() {

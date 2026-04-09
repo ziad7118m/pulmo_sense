@@ -21,13 +21,13 @@ class AppConfig {
 
   static const dev = AppConfig(
     env: AppEnv.dev,
-    baseUrl: 'https://example.com', // placeholder دلوقتي
-    useApi: false, // يظل false لحين استكمال ربط الشاشات بالمستودعات البعيدة
+    baseUrl: 'https://lungcare.runasp.net',
+    useApi: true,
   );
 
   static const prod = AppConfig(
     env: AppEnv.prod,
-    baseUrl: 'https://example.com', // placeholder
-    useApi: false,
+    baseUrl: 'https://lungcare.runasp.net',
+    useApi: true,
   );
 }

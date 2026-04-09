@@ -9,6 +9,11 @@ import 'package:provider/provider.dart';
 class AdminUserActionsController {
   const AdminUserActionsController();
 
+
+  static bool isApiMode(BuildContext context) {
+    return context.read<AuthController>().isApiMode;
+  }
+
   Future<void> approveAs(
     BuildContext context, {
     required AuthUser user,
@@ -17,7 +22,7 @@ class AdminUserActionsController {
     final ok = await AppConfirmationDialog.show(
       context,
       title: 'Approve account?',
-      message: role.isDoctor
+      message: role == UserRole.doctor
           ? 'This will activate the account as a Doctor.'
           : 'This will activate the account as a Patient.',
       confirmLabel: 'Approve',
@@ -29,7 +34,7 @@ class AdminUserActionsController {
     await _run(
       context,
       action: (ctrl) => ctrl.approve(user.id, role: role),
-      successMessage: role.isDoctor ? 'Approved as doctor' : 'Approved as patient',
+      successMessage: role == UserRole.doctor ? 'Approved as doctor' : 'Approved as patient',
     );
   }
 

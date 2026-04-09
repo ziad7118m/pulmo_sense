@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:lung_diagnosis_app/core/network/api_client.dart';
 import 'package:lung_diagnosis_app/core/network/endpoints.dart';
 import 'package:lung_diagnosis_app/core/result/result.dart';
@@ -13,37 +16,34 @@ class ArticleRemoteDataSource {
   ApiClient get apiClient => _apiClient;
 
   String _articlePath(String id) => '${Endpoints.articles}/${id.trim()}';
-  String _hidePath(String id) => '${_articlePath(id)}/moderation/hide';
-  String _unhidePath(String id) => '${_articlePath(id)}/moderation/unhide';
-  String _favouriteTogglePath(String id) => '${_articlePath(id)}/favourite-toggle';
-  String _saveTogglePath(String id) => '${_articlePath(id)}/save-toggle';
 
   Future<List<ArticleDto>> all() {
-    return _getArticleList(
-      Endpoints.articles,
-      query: <String, dynamic>{'scope': 'all'},
-    );
+    return _getArticleList(Endpoints.articles);
   }
 
-  Future<List<ArticleDto>> allVisible() {
-    return _getArticleList(
-      Endpoints.articles,
-      query: <String, dynamic>{'scope': 'visible'},
-    );
+  Future<List<ArticleDto>> allVisible() async {
+    final items = await all();
+    return items.where((article) => !article.isHiddenByAdmin).toList(growable: false);
   }
 
-  Future<List<ArticleDto>> mine() => _getArticleList(Endpoints.articleMine);
-
-  Future<List<ArticleDto>> byAuthor(String userId) {
-    return _getArticleList(
-      Endpoints.articles,
-      query: <String, dynamic>{'authorUserId': userId.trim()},
-    );
+  Future<List<ArticleDto>> mine() {
+    return all();
   }
 
-  Future<List<ArticleDto>> favourites() => _getArticleList(Endpoints.articleFavourites);
+  Future<List<ArticleDto>> byAuthor(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return const <ArticleDto>[];
+    final items = await all();
+    return items.where((article) => article.createdByUserId == normalized).toList(growable: false);
+  }
 
-  Future<List<ArticleDto>> saved() => _getArticleList(Endpoints.articleSaved);
+  Future<List<ArticleDto>> favourites() {
+    return _getArticleList(Endpoints.articleFavourites);
+  }
+
+  Future<List<ArticleDto>> saved() {
+    return favourites();
+  }
 
   Future<ArticleDto?> getById(String id) async {
     final normalized = id.trim();
@@ -57,29 +57,27 @@ class ArticleRemoteDataSource {
     if (result is Success<ArticleDto>) {
       return result.value;
     }
-    throw StateError('Failed to fetch remote article.');
+
+    final allItems = await all();
+    for (final article in allItems) {
+      if (article.id == normalized) return article;
+    }
+    return null;
   }
 
   Future<ArticleDto?> upsert(ArticleUpsertRequestDto request) async {
     final normalizedId = request.id.trim();
     final path = normalizedId.isEmpty ? Endpoints.articles : _articlePath(normalizedId);
+    final formData = await _buildPostFormData(request);
 
-    final Result<ArticleDto> result = normalizedId.isEmpty
-        ? await _apiClient.post<ArticleDto>(
-            path,
-            body: request.toJson(),
-            decode: (dynamic data) => ArticleDto.fromJson(_extractArticleMap(data)),
-          )
-        : await _apiClient.put<ArticleDto>(
-            path,
-            body: request.toJson(),
-            decode: (dynamic data) => ArticleDto.fromJson(_extractArticleMap(data)),
-          );
-
-    if (result is Success<ArticleDto>) {
-      return result.value;
+    try {
+      final response = normalizedId.isEmpty
+          ? await _apiClient.raw.post<dynamic>(path, data: formData)
+          : await _apiClient.raw.put<dynamic>(path, data: formData);
+      return ArticleDto.fromJson(_extractArticleMap(response.data));
+    } catch (_) {
+      throw StateError('Failed to persist remote article.');
     }
-    throw StateError('Failed to persist remote article.');
   }
 
   Future<void> delete(String articleId) async {
@@ -89,69 +87,50 @@ class ArticleRemoteDataSource {
   }
 
   Future<ArticleDto?> setAdminHidden(String articleId, bool hidden) async {
-    final normalized = articleId.trim();
-    if (normalized.isEmpty) return null;
-
-    final Result<ArticleDto> result = await _apiClient.post<ArticleDto>(
-      hidden ? _hidePath(normalized) : _unhidePath(normalized),
-      decode: (dynamic data) => ArticleDto.fromJson(_extractArticleMap(data)),
-    );
-
-    if (result is Success<ArticleDto>) {
-      return result.value;
-    }
-    throw StateError('Failed to update remote article moderation state.');
+    throw StateError('Remote article moderation is not available on this backend yet.');
   }
 
   Future<ArticleReactionStatusDto?> reactionStatus(String articleId) async {
     final normalized = articleId.trim();
     if (normalized.isEmpty) return null;
 
-    final Result<ArticleReactionStatusDto> result =
-        await _apiClient.get<ArticleReactionStatusDto>(
-      _articlePath(normalized),
-      decode: (dynamic data) =>
-          ArticleReactionStatusDto.fromJson(_extractStateMap(data)),
+    final favorites = await favourites();
+    final isFavourite = favorites.any((article) => article.id == normalized);
+    return ArticleReactionStatusDto(
+      isFavourite: isFavourite,
+      isSaved: isFavourite,
+      favouriteCount: null,
     );
-
-    if (result is Success<ArticleReactionStatusDto>) {
-      return result.value;
-    }
-    throw StateError('Failed to fetch remote article reaction state.');
   }
 
   Future<ArticleReactionStatusDto?> toggleFavourite(String articleId) async {
-    final normalized = articleId.trim();
-    if (normalized.isEmpty) return null;
-
-    final Result<ArticleReactionStatusDto> result =
-        await _apiClient.post<ArticleReactionStatusDto>(
-      _favouriteTogglePath(normalized),
-      decode: (dynamic data) =>
-          ArticleReactionStatusDto.fromJson(_extractStateMap(data)),
-    );
-
-    if (result is Success<ArticleReactionStatusDto>) {
-      return result.value;
+    final postId = int.tryParse(articleId.trim());
+    if (postId == null) {
+      throw StateError('Invalid article id for favorites endpoint.');
     }
-    throw StateError('Failed to toggle remote article favourite state.');
+
+    final current = await reactionStatus(articleId);
+    final alreadyFavourite = current?.isFavourite ?? false;
+
+    final result = alreadyFavourite
+        ? await _apiClient.delete<dynamic>(
+            Endpoints.articleFavourites,
+            body: <String, dynamic>{'postId': postId},
+          )
+        : await _apiClient.post<dynamic>(
+            Endpoints.articleFavourites,
+            body: <String, dynamic>{'postId': postId},
+          );
+
+    if (result is FailureResult<dynamic>) {
+      throw StateError('Failed to toggle remote article favourite state.');
+    }
+
+    return ArticleReactionStatusDto(isFavourite: !alreadyFavourite, isSaved: !alreadyFavourite);
   }
 
-  Future<ArticleReactionStatusDto?> toggleSaved(String articleId) async {
-    final normalized = articleId.trim();
-    if (normalized.isEmpty) return null;
-
-    final Result<ArticleReactionStatusDto> result =
-        await _apiClient.post<ArticleReactionStatusDto>(
-      _saveTogglePath(normalized),
-      decode: (dynamic data) =>
-          ArticleReactionStatusDto.fromJson(_extractStateMap(data)),
-    );
-
-    if (result is Success<ArticleReactionStatusDto>) {
-      return result.value;
-    }
-    throw StateError('Failed to toggle remote article saved state.');
+  Future<ArticleReactionStatusDto?> toggleSaved(String articleId) {
+    return toggleFavourite(articleId);
   }
 
   Future<List<ArticleDto>> _getArticleList(
@@ -171,6 +150,28 @@ class ArticleRemoteDataSource {
       return result.value;
     }
     throw StateError('Failed to fetch remote articles.');
+  }
+
+  Future<FormData> _buildPostFormData(ArticleUpsertRequestDto request) async {
+    final map = <String, dynamic>{
+      'Title': request.title,
+      'Description': request.content,
+    };
+
+    final files = <MultipartFile>[];
+    for (final path in request.articleImages) {
+      final normalized = path.trim();
+      if (normalized.isEmpty) continue;
+      final file = File(normalized);
+      if (!file.existsSync()) continue;
+      files.add(await MultipartFile.fromFile(normalized, filename: file.uri.pathSegments.isNotEmpty ? file.uri.pathSegments.last : 'image.jpg'));
+    }
+
+    if (files.isNotEmpty) {
+      map['Images'] = files;
+    }
+
+    return FormData.fromMap(map);
   }
 
   Map<String, dynamic> _extractArticleMap(dynamic data) {
@@ -206,16 +207,6 @@ class ArticleRemoteDataSource {
     }
 
     return const <Map<String, dynamic>>[];
-  }
-
-  Map<String, dynamic> _extractStateMap(dynamic data) {
-    final root = _extractMap(data);
-    final nestedData = _asMap(root['data']);
-    final nestedState = _mapValue(nestedData, 'viewerState') ??
-        _mapValue(nestedData, 'state') ??
-        _mapValue(root, 'viewerState') ??
-        _mapValue(root, 'state');
-    return nestedState ?? nestedData ?? root;
   }
 
   Map<String, dynamic> _extractMap(dynamic data) {

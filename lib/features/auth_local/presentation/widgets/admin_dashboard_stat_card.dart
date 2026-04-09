@@ -21,98 +21,81 @@ class AdminDashboardStatCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxHeight < 126 || constraints.maxWidth < 138;
-        final padding = compact ? 13.0 : 16.0;
-        final iconSize = compact ? 38.0 : 42.0;
-        final titleSize = compact ? 11.5 : 12.5;
-        final valueSize = compact ? 23.0 : 28.0;
-        final subtitleSize = compact ? 11.0 : 12.5;
-        final topGap = compact ? 12.0 : 16.0;
-        final middleGap = compact ? 6.0 : 8.0;
-
-        return Container(
-          padding: EdgeInsets.all(padding),
-          decoration: BoxDecoration(
-            color: isDark ? scheme.surface : Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: scheme.outlineVariant.withOpacity(0.85)),
-            boxShadow: isDark
-                ? const []
-                : [
-                    BoxShadow(
-                      color: accentColor.withOpacity(0.10),
-                      blurRadius: 22,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-          ),
-          child: Column(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? scheme.surface : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.85)),
+        boxShadow: isDark
+            ? const []
+            : [
+                BoxShadow(
+                  color: accentColor.withOpacity(0.10),
+                  blurRadius: 22,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: iconSize,
-                    height: iconSize,
-                    decoration: BoxDecoration(
-                      color: accentColor.withOpacity(isDark ? 0.18 : 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, color: accentColor, size: compact ? 20 : 22),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: titleSize,
-                          height: 1.1,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: topGap),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: valueSize,
-                    fontWeight: FontWeight.w900,
-                  ),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(isDark ? 0.18 : 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
+                child: Icon(icon, color: accentColor, size: 22),
               ),
-              SizedBox(height: middleGap),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  subtitle,
-                  maxLines: compact ? 2 : 3,
+                  title,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
-                    height: 1.18,
-                    fontSize: subtitleSize,
+                    fontSize: 12.5,
+                    height: 1.1,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 14),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              height: 1.24,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

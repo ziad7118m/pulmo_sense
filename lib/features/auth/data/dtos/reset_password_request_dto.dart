@@ -11,7 +11,7 @@ class ResetPasswordRequestDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'emailOrPhone': emailOrPhone.trim(),
+      'email': emailOrPhone.trim(),
       'code': code.trim(),
       'newPassword': newPassword,
     };

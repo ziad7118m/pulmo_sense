@@ -28,20 +28,25 @@ class AdminUsersPageController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool showRoleFilter(AdminUsersKind kind) {
+  bool showRoleFilter(AdminUsersKind kind, {required bool isApiMode}) {
+    if (isApiMode) return false;
     return kind != AdminUsersKind.doctors && kind != AdminUsersKind.patients;
   }
 
-  bool matchesRoleScope(AuthUser user, AdminUsersKind kind) {
-    if (!showRoleFilter(kind)) return true;
+  bool matchesRoleScope(
+    AuthUser user,
+    AdminUsersKind kind, {
+    required bool isApiMode,
+  }) {
+    if (isApiMode || !showRoleFilter(kind, isApiMode: isApiMode)) return true;
 
     switch (_roleScope) {
       case AdminUsersRoleScope.all:
         return true;
       case AdminUsersRoleScope.doctors:
-        return user.role.isDoctor;
+        return user.role == UserRole.doctor;
       case AdminUsersRoleScope.patients:
-        return user.role.isPatient;
+        return user.role == UserRole.patient;
     }
   }
 
@@ -76,6 +81,115 @@ class AdminUsersPageController extends ChangeNotifier {
     required AuthUser user,
     required AuthController authController,
   }) {
+    if (authController.isApiMode) {
+      switch (kind) {
+        case AdminUsersKind.pending:
+          return [
+            AdminActionButton(
+              text: 'Approve',
+              icon: Icons.verified_rounded,
+              isFilled: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.approve(user.id),
+                message: 'Approved ${user.email}',
+              ),
+            ),
+            AdminActionButton(
+              text: 'Reject',
+              icon: Icons.block_rounded,
+              isDanger: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.reject(user.id),
+                message: 'Rejected ${user.email}',
+              ),
+            ),
+            AdminActionButton(
+              text: 'Disable',
+              icon: Icons.lock_rounded,
+              isDanger: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.disable(user.id),
+                message: 'Disabled ${user.email}',
+              ),
+            ),
+          ];
+        case AdminUsersKind.active:
+        case AdminUsersKind.doctors:
+        case AdminUsersKind.patients:
+          return [
+            AdminActionButton(
+              text: 'Disable',
+              icon: Icons.lock_rounded,
+              isDanger: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.disable(user.id),
+                message: 'Disabled ${user.email}',
+              ),
+            ),
+            AdminActionButton(
+              text: 'Delete',
+              icon: Icons.delete_outline_rounded,
+              isDanger: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.deleteUser(user.id),
+                message: 'Deleted ${user.email}',
+              ),
+            ),
+          ];
+        case AdminUsersKind.disabled:
+          return [
+            AdminActionButton(
+              text: 'Enable',
+              icon: Icons.lock_open_rounded,
+              isFilled: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.enable(user.id),
+                message: 'Enabled ${user.email}',
+              ),
+            ),
+            AdminActionButton(
+              text: 'Delete',
+              icon: Icons.delete_outline_rounded,
+              isDanger: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.deleteUser(user.id),
+                message: 'Deleted ${user.email}',
+              ),
+            ),
+          ];
+        case AdminUsersKind.rejected:
+          return [
+            AdminActionButton(
+              text: 'Approve',
+              icon: Icons.verified_rounded,
+              isFilled: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.approve(user.id),
+                message: 'Approved ${user.email}',
+              ),
+            ),
+            AdminActionButton(
+              text: 'Delete',
+              icon: Icons.delete_outline_rounded,
+              isDanger: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.deleteUser(user.id),
+                message: 'Deleted ${user.email}',
+              ),
+            ),
+          ];
+      }
+    }
+
     switch (kind) {
       case AdminUsersKind.pending:
         return _buildPendingActions(context, user);
@@ -113,46 +227,17 @@ class AdminUsersPageController extends ChangeNotifier {
   }
 
   List<Widget> _buildPendingActions(BuildContext context, AuthUser user) {
-    final actions = <Widget>[];
-
-    if (user.role.isDoctor) {
-      actions.addAll([
-        AdminActionButton(
-          text: 'Approve Doctor',
-          icon: Icons.verified_rounded,
-          isFilled: true,
-          onTap: () => runUserAction(
-            context,
-            action: (controller) => controller.approve(user.id, role: UserRole.doctor),
-            message: 'Approved ${user.email} as Doctor',
-          ),
+    return [
+      AdminActionButton(
+        text: 'Approve',
+        icon: Icons.verified_rounded,
+        isFilled: true,
+        onTap: () => runUserAction(
+          context,
+          action: (controller) => controller.approve(user.id, role: user.role),
+          message: 'Approved ${user.email}',
         ),
-        AdminActionButton(
-          text: 'Approve Patient',
-          icon: Icons.person_rounded,
-          onTap: () => runUserAction(
-            context,
-            action: (controller) => controller.approve(user.id, role: UserRole.patient),
-            message: 'Approved ${user.email} as Patient',
-          ),
-        ),
-      ]);
-    } else {
-      actions.add(
-        AdminActionButton(
-          text: 'Approve',
-          icon: Icons.verified_rounded,
-          isFilled: true,
-          onTap: () => runUserAction(
-            context,
-            action: (controller) => controller.approve(user.id, role: UserRole.patient),
-            message: 'Approved ${user.email}',
-          ),
-        ),
-      );
-    }
-
-    actions.addAll([
+      ),
       AdminActionButton(
         text: 'Reject',
         icon: Icons.block_rounded,
@@ -175,9 +260,7 @@ class AdminUsersPageController extends ChangeNotifier {
           isError: true,
         ),
       ),
-    ]);
-
-    return actions;
+    ];
   }
 
   List<Widget> _buildDisableOnlyActions(BuildContext context, AuthUser user) {

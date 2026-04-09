@@ -50,6 +50,12 @@ class AppDI {
   static late final ApiClient apiClient = ApiClient(
     config: config,
     tokenProvider: () => tokenStore.getAccessToken(),
+    refreshTokenProvider: () => tokenStore.getRefreshToken(),
+    onSessionRefreshed: (accessToken, refreshToken) => tokenStore.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    ),
+    onUnauthorized: () => tokenStore.clear(),
   );
 
   static late final AuthRepository authRepo = AuthRepositoryImpl(

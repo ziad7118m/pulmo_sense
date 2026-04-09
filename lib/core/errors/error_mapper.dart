@@ -41,7 +41,7 @@ class ErrorMapper {
     if (error is FormatException) {
       return AppFailure(
         type: FailureType.parsing,
-        message: 'Invalid data format',
+        message: error.message.isEmpty ? 'Invalid data format' : error.message,
         details: error,
       );
     }
@@ -71,7 +71,7 @@ class ErrorMapper {
     // Fallback.
     return AppFailure(
       type: FailureType.unknown,
-      message: 'Unknown error',
+      message: error.toString().trim().isEmpty ? 'Unknown error' : error.toString(),
       details: error,
     );
   }

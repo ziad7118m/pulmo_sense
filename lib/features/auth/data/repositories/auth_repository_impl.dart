@@ -40,37 +40,71 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     final dto = (result as Success<LoginResponseDto>).value;
-    final session = AuthUserMapper.toSession(dto);
+    var session = AuthUserMapper.toSession(dto);
     await _local.saveSession(tokens: session.tokens, user: session.user);
+
+    if (session.user.id.trim().isEmpty) {
+      final currentUserResult = await fetchCurrentUser();
+      if (currentUserResult is Success<AuthUser>) {
+        session = AuthSession(user: currentUserResult.value, tokens: session.tokens);
+        await _local.saveSession(tokens: session.tokens, user: session.user);
+      }
+    }
+
     return Success(session);
   }
 
   @override
-  Future<Result<AuthUser>> register(RegisterAccountRequest request) async {
-    final Result<AuthUserDto> result = await _remote.register(
+  Future<Result<String>> register(RegisterAccountRequest request) async {
+    final Result<String> result = await _remote.register(
       RegisterRequestDto(
         email: request.email.trim(),
         password: request.password,
+        confirmPassword: request.confirmPassword,
         firstName: request.firstName,
         lastName: request.lastName,
-        role: request.role.apiValue,
         nationalId: request.nationalId,
-        address: request.address,
-        phone: request.phone,
-        birthDate: request.birthDate,
-        gender: request.gender,
-        maritalStatus: request.maritalStatus,
-        doctorLicense: request.role == UserRole.doctor
-            ? request.doctorLicense.trim()
-            : '',
+        phoneNumber: request.phone,
+        dateOfBirth: request.birthDate,
+        gender: RegisterRequestDto.mapGender(request.gender),
+        isMarried: RegisterRequestDto.mapMaritalStatus(request.maritalStatus),
+        governorate: RegisterRequestDto.mapGovernorate(request.address),
+        medicalLicense: request.role == UserRole.doctor ? request.doctorLicense.trim() : '',
+        isDoctor: request.role == UserRole.doctor,
       ),
     );
-    if (result is FailureResult<AuthUserDto>) {
-      return FailureResult<AuthUser>(result.failure);
-    }
+    if (result is FailureResult<String>) {
+      final failure = result.failure;
+      final message = failure.message.toLowerCase();
+      final shouldTryOtpRecovery =
+          failure.statusCode == 500 ||
+          message.contains('email already exists') ||
+          message.contains('already exists') ||
+          message.contains('verify your email');
 
-    final dto = (result as Success<AuthUserDto>).value;
-    return Success(AuthUserMapper.toDomain(dto));
+      if (shouldTryOtpRecovery) {
+        final otpResult = await _remote.sendOtp(request.email.trim());
+        if (otpResult is Success<Unit>) {
+          return const Success<String>('Account is ready for OTP verification.');
+        }
+      }
+
+      return FailureResult<String>(failure);
+    }
+    return Success((result as Success<String>).value);
+  }
+
+  @override
+  Future<Result<Unit>> sendEmailOtp(String email) {
+    return _remote.sendOtp(email.trim());
+  }
+
+  @override
+  Future<Result<Unit>> verifyEmailOtp({
+    required String email,
+    required String code,
+  }) {
+    return _remote.verifyOtp(email: email.trim(), code: code.trim());
   }
 
   @override
@@ -93,8 +127,17 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     final dto = (result as Success<LoginResponseDto>).value;
-    final session = AuthUserMapper.toSession(dto);
+    var session = AuthUserMapper.toSession(dto);
     await _local.saveSession(tokens: session.tokens, user: session.user);
+
+    if (session.user.id.trim().isEmpty) {
+      final currentUserResult = await fetchCurrentUser();
+      if (currentUserResult is Success<AuthUser>) {
+        session = AuthSession(user: currentUserResult.value, tokens: session.tokens);
+        await _local.saveSession(tokens: session.tokens, user: session.user);
+      }
+    }
+
     return Success(session);
   }
 
@@ -138,7 +181,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await _remote.logout();
+    final tokens = await _local.readTokens();
+    final refreshToken = tokens?.refreshToken ?? '';
+    if (refreshToken.trim().isNotEmpty) {
+      await _remote.logout(refreshToken);
+    }
     await _local.clear();
   }
 

@@ -16,6 +16,21 @@ class AppStorage {
     await prefs.setBool(key, value);
   }
 
+  static Future<String?> getString(String key) async {
+    final prefs = await _prefs;
+    return prefs.getString(key);
+  }
+
+  static Future<void> setString(String key, String value) async {
+    final prefs = await _prefs;
+    await prefs.setString(key, value);
+  }
+
+  static Future<void> remove(String key) async {
+    final prefs = await _prefs;
+    await prefs.remove(key);
+  }
+
   static Future<void> clear() async {
     final prefs = await _prefs;
     await prefs.clear();

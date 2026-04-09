@@ -10,8 +10,9 @@ class PasswordResetChallengeDto {
   });
 
   factory PasswordResetChallengeDto.fromJson(Map<String, dynamic> json) {
+    final message = (json['message'] ?? json['deliveryHint'] ?? json['maskedDestination'] ?? '').toString();
     return PasswordResetChallengeDto(
-      deliveryHint: (json['deliveryHint'] ?? json['maskedDestination'] ?? '').toString(),
+      deliveryHint: message,
       debugCode: (json['debugCode'] ?? '').toString().trim().isEmpty
           ? null
           : (json['debugCode'] ?? '').toString(),

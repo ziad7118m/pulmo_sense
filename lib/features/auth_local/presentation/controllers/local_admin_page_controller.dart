@@ -17,6 +17,8 @@ class LocalAdminPageController {
   }) : _authController = authController,
        _articleController = articleController;
 
+  bool get isApiMode => _authController.isApiMode;
+
   Future<LocalAdminPageViewData> loadViewData() async {
     final snapshot = await loadAdminDashboardSnapshot(
       authController: _authController,
@@ -35,6 +37,7 @@ class LocalAdminPageController {
     required void Function(AdminUsersKind kind) onOpenUsers,
   }) {
     final counts = data.snapshot.userCounts;
+    final kinds = AdminUsersKind.values;
 
     final accents = <AdminUsersKind, Color>{
       AdminUsersKind.pending: const Color(0xFFFFA000),
@@ -45,7 +48,7 @@ class LocalAdminPageController {
       AdminUsersKind.patients: const Color(0xFF5E60CE),
     };
 
-    return AdminUsersKind.values
+    return kinds
         .map(
           (kind) => AdminHomeTileData(
             title: kind.title,
@@ -62,17 +65,17 @@ class LocalAdminPageController {
   List<AdminInsightItem> buildInsightItems(LocalAdminPageViewData data) {
     return [
       AdminInsightItem(
-        label: 'Visible articles',
+        label: 'Visible posts',
         value: '${data.snapshot.visibleArticles}',
         icon: Icons.visibility_rounded,
       ),
       AdminInsightItem(
-        label: 'Hidden articles',
+        label: 'Hidden posts',
         value: '${data.snapshot.hiddenArticles}',
         icon: Icons.visibility_off_rounded,
       ),
       AdminInsightItem(
-        label: 'Total articles',
+        label: 'Total posts',
         value: '${data.snapshot.totalArticles}',
         icon: Icons.feed_outlined,
       ),

@@ -12,10 +12,31 @@ class LoginResponseDto {
   });
 
   factory LoginResponseDto.fromJson(Map<String, dynamic> json) {
+    final role = (json['role'] ?? json['userType'] ?? 'Patient').toString();
+    final embeddedUser = json['user'];
+    final userJson = embeddedUser is Map<String, dynamic>
+        ? embeddedUser
+        : embeddedUser is Map
+            ? Map<String, dynamic>.from(embeddedUser)
+            : json;
+
     return LoginResponseDto(
-      accessToken: (json['accessToken'] ?? '').toString(),
+      accessToken: (json['token'] ?? json['accessToken'] ?? '').toString(),
       refreshToken: (json['refreshToken'] ?? '').toString(),
-      user: AuthUserDto.fromJson(Map<String, dynamic>.from(json['user'] as Map? ?? const {})),
+      user: AuthUserDto(
+        id: (userJson['id'] ?? userJson['userId'] ?? json['id'] ?? '').toString(),
+        email: (userJson['email'] ?? json['email'] ?? '').toString(),
+        displayName: (userJson['userName'] ??
+                userJson['name'] ??
+                userJson['displayName'] ??
+                json['userName'] ??
+                json['name'] ??
+                json['displayName'] ??
+                '').toString(),
+        role: (userJson['role'] ?? userJson['userType'] ?? role).toString(),
+        status: (userJson['status'] ?? userJson['userStatus'] ?? json['status'] ?? 'Active')
+            .toString(),
+      ),
     );
   }
 }

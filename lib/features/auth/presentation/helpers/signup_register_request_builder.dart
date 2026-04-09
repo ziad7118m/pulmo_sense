@@ -10,11 +10,13 @@ class SignupRegisterRequestBuilder {
     required UserRole role,
     required String email,
     required String password,
+    required String confirmPassword,
     required String doctorLicense,
   }) {
     return RegisterAccountRequest(
       email: email.trim(),
       password: password,
+      confirmPassword: confirmPassword,
       firstName: seed.firstName,
       lastName: seed.lastName,
       role: role,

@@ -13,21 +13,33 @@ Future<AdminDashboardSnapshot> loadAdminDashboardSnapshot({
     final rejected = await authController.fetchRejected();
     final doctors = await authController.fetchDoctors();
     final patients = await authController.fetchPatients();
-    final allArticles = await articleController.all();
-    final hiddenArticles = allArticles.where((article) => article.isHiddenByAdmin).length;
-    final visibleArticles = allArticles.length - hiddenArticles;
 
-    return AdminDashboardSnapshot(
-      pending: pending.length,
-      approved: approved.length,
-      disabled: disabled.length,
-      rejected: rejected.length,
-      doctors: doctors.length,
-      patients: patients.length,
-      totalArticles: allArticles.length,
-      hiddenArticles: hiddenArticles,
-      visibleArticles: visibleArticles,
-    );
+    try {
+      final allArticles = await articleController.all();
+      final hiddenArticles = allArticles.where((article) => article.isHiddenByAdmin).length;
+      final visibleArticles = allArticles.length - hiddenArticles;
+
+      return AdminDashboardSnapshot(
+        pending: pending.length,
+        approved: approved.length,
+        disabled: disabled.length,
+        rejected: rejected.length,
+        doctors: doctors.length,
+        patients: patients.length,
+        totalArticles: allArticles.length,
+        hiddenArticles: hiddenArticles,
+        visibleArticles: visibleArticles,
+      );
+    } catch (_) {
+      return AdminDashboardSnapshot(
+        pending: pending.length,
+        approved: approved.length,
+        disabled: disabled.length,
+        rejected: rejected.length,
+        doctors: doctors.length,
+        patients: patients.length,
+      );
+    }
   } catch (_) {
     return const AdminDashboardSnapshot();
   }

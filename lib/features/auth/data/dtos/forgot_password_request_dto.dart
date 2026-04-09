@@ -7,7 +7,7 @@ class ForgotPasswordRequestDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'emailOrPhone': emailOrPhone.trim(),
+      'email': emailOrPhone.trim(),
     };
   }
 }
