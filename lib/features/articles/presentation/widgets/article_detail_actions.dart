@@ -5,12 +5,9 @@ class ArticleDetailActions extends StatelessWidget {
   final bool isAdmin;
   final bool isOwner;
   final bool isFavorite;
-  final bool isSaved;
   final bool isDeleting;
   final bool isTogglingFavourite;
-  final bool isTogglingSaved;
   final VoidCallback onToggleFavourite;
-  final VoidCallback onToggleSaved;
   final VoidCallback? onDelete;
 
   const ArticleDetailActions({
@@ -18,12 +15,9 @@ class ArticleDetailActions extends StatelessWidget {
     required this.isAdmin,
     required this.isOwner,
     required this.isFavorite,
-    required this.isSaved,
     required this.isDeleting,
     required this.isTogglingFavourite,
-    required this.isTogglingSaved,
     required this.onToggleFavourite,
-    required this.onToggleSaved,
     this.onDelete,
   });
 
@@ -51,25 +45,11 @@ class ArticleDetailActions extends StatelessWidget {
                   ),
             onPressed: isTogglingFavourite || isDeleting ? null : onToggleFavourite,
           ),
-          IconButton(
-            tooltip: isTogglingSaved ? 'Updating save' : 'Save',
-            icon: isTogglingSaved
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
-                    color: isSaved ? scheme.primary : scheme.onSurfaceVariant,
-                  ),
-            onPressed: isTogglingSaved || isDeleting ? null : onToggleSaved,
-          ),
         ],
         if (!isAdmin && isOwner && onDelete != null)
           PopupMenuButton<String>(
             tooltip: isDeleting ? 'Deleting article' : 'More',
-            enabled: !isDeleting && !isTogglingFavourite && !isTogglingSaved,
+            enabled: !isDeleting && !isTogglingFavourite,
             onSelected: (value) {
               if (value == 'delete') onDelete?.call();
             },

@@ -5,7 +5,6 @@ import 'package:lung_diagnosis_app/features/articles/presentation/pages/add_arti
 import 'package:lung_diagnosis_app/features/articles/presentation/pages/articles_screen.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/pages/favourite_articles_screen.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/pages/my_articles_screen.dart';
-import 'package:lung_diagnosis_app/features/articles/presentation/pages/saved_articles_screen.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/dashboard/presentation/pages/dashboard_screen.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/presentation/models/stethoscope_doctor_history_scope.dart';
@@ -44,15 +43,6 @@ List<MenuActionItem> _commonArticleItems(BuildContext context) {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const FavouriteArticlesScreen()),
-      ),
-    ),
-    MenuActionItem(
-      icon: Icons.bookmark_rounded,
-      title: 'Saved Articles',
-      section: 'Content',
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SavedArticlesScreen()),
       ),
     ),
     MenuActionItem(

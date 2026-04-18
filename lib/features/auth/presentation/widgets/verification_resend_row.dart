@@ -15,24 +15,36 @@ class VerificationResendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final label = canResend ? 'Didn\'t receive the code?' : 'You can request a new code in ${timer}s';
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
       children: [
         Text(
-          canResend ? 'Resend code' : 'Wait for $timer seconds.',
-          style: TextStyle(
-            color: canResend ? scheme.primary : Colors.grey,
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+        ),
+        TextButton(
+          onPressed: canResend ? onResend : null,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            canResend ? 'Resend' : 'Resend',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: canResend ? scheme.primary : scheme.outline,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ),
-        if (canResend)
-          TextButton(
-            onPressed: onResend,
-            child: Text(
-              'Resend',
-              style: TextStyle(color: scheme.primary),
-            ),
-          ),
       ],
     );
   }

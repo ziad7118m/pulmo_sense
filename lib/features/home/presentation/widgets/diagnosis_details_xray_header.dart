@@ -22,9 +22,12 @@ class DiagnosisDetailsXrayHeader extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final path = imagePath!;
     final isAsset = path.startsWith('assets/');
+    final isNetwork = path.startsWith('http://') || path.startsWith('https://');
     final ImageProvider<Object> previewImage = isAsset
         ? AssetImage(path) as ImageProvider<Object>
-        : FileImage(File(path)) as ImageProvider<Object>;
+        : isNetwork
+            ? NetworkImage(path) as ImageProvider<Object>
+            : FileImage(File(path)) as ImageProvider<Object>;
 
     return Material(
       color: Colors.transparent,
@@ -130,7 +133,9 @@ class DiagnosisDetailsXrayHeader extends StatelessWidget {
                     color: scheme.surfaceVariant.withOpacity(0.45),
                     child: isAsset
                         ? Image.asset(path, fit: BoxFit.contain)
-                        : Image.file(File(path), fit: BoxFit.contain),
+                        : isNetwork
+                            ? Image.network(path, fit: BoxFit.contain)
+                            : Image.file(File(path), fit: BoxFit.contain),
                   ),
                 ),
               ],

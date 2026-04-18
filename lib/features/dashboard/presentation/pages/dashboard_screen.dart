@@ -125,7 +125,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         future: _medicalFuture,
         builder: (context, snapshot) {
           final medical = snapshot.data;
-          final overallRisk = controller.resolveOverallRisk(medical);
 
           return CustomScrollView(
             slivers: [
@@ -207,7 +206,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             : 'Risk summary based on the patient medical factors saved so far.',
                       ),
                       const SizedBox(height: 12),
-                      RiskDashboardCard(percentage: overallRisk),
+                      FutureBuilder<double>(
+                        future: controller.loadOverallRisk(medical),
+                        builder: (context, riskSnapshot) {
+                          final riskPercentage = riskSnapshot.data ?? controller.resolveOverallRisk(medical);
+                          return RiskDashboardCard(percentage: riskPercentage);
+                        },
+                      ),
                       const SizedBox(height: 12),
                       DashboardLearnMoreSection(
                         title: AppStrings.aboutCardTitle,

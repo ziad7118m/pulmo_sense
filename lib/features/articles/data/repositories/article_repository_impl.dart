@@ -214,7 +214,7 @@ class ArticleRepositoryImpl implements ArticleRepository {
         final state = await remote.reactionStatus(normalized);
         final value = state?.isFavourite;
         if (value != null) {
-          await _local.setFavourite(normalized, value);
+          await _local.setFavourite(normalized, value, notify: false);
           return value;
         }
       } catch (_) {}
@@ -248,7 +248,7 @@ class ArticleRepositoryImpl implements ArticleRepository {
       try {
         final articles = ArticleMapper.fromDtoList(await remote.favourites());
         await _cacheArticles(articles);
-        await _local.replaceFavourites(articles.map((article) => article.id));
+        await _local.replaceFavourites(articles.map((article) => article.id), notify: false);
         return articles;
       } catch (_) {}
     }
@@ -266,7 +266,7 @@ class ArticleRepositoryImpl implements ArticleRepository {
         final state = await remote.reactionStatus(normalized);
         final value = state?.isSaved;
         if (value != null) {
-          await _local.setSaved(normalized, value);
+          await _local.setSaved(normalized, value, notify: false);
           return value;
         }
       } catch (_) {}
@@ -300,7 +300,7 @@ class ArticleRepositoryImpl implements ArticleRepository {
       try {
         final articles = ArticleMapper.fromDtoList(await remote.saved());
         await _cacheArticles(articles);
-        await _local.replaceSaved(articles.map((article) => article.id));
+        await _local.replaceSaved(articles.map((article) => article.id), notify: false);
         return articles;
       } catch (_) {}
     }
@@ -314,6 +314,6 @@ class ArticleRepositoryImpl implements ArticleRepository {
   }
 
   Future<void> _cacheArticle(Article article) async {
-    await _local.upsert(ArticleMapper.toLocal(article));
+    await _local.upsert(ArticleMapper.toLocal(article), notify: false);
   }
 }

@@ -26,15 +26,22 @@ class ArticleRemoteDataSource {
     return items.where((article) => !article.isHiddenByAdmin).toList(growable: false);
   }
 
-  Future<List<ArticleDto>> mine() {
-    return all();
+  Future<List<ArticleDto>> mine() async {
+    final items = await all();
+    final identities = await _resolveCurrentIdentityNames();
+    if (identities.isEmpty) return items;
+    return items
+        .where((article) => identities.contains(article.doctorName.trim().toLowerCase()))
+        .toList(growable: false);
   }
 
   Future<List<ArticleDto>> byAuthor(String userId) async {
     final normalized = userId.trim();
     if (normalized.isEmpty) return const <ArticleDto>[];
     final items = await all();
-    return items.where((article) => article.createdByUserId == normalized).toList(growable: false);
+    final direct = items.where((article) => article.createdByUserId == normalized).toList(growable: false);
+    if (direct.isNotEmpty) return direct;
+    return mine();
   }
 
   Future<List<ArticleDto>> favourites() {
@@ -217,6 +224,25 @@ class ArticleRemoteDataSource {
   Map<String, dynamic>? _mapValue(Map<String, dynamic>? map, String key) {
     if (map == null) return null;
     return _asMap(map[key]);
+  }
+
+  Future<Set<String>> _resolveCurrentIdentityNames() async {
+    final result = await _apiClient.get<Map<String, dynamic>>(
+      Endpoints.me,
+      decode: (dynamic data) {
+        if (data is Map<String, dynamic>) return data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+        return <String, dynamic>{};
+      },
+    );
+
+    if (result is! Success<Map<String, dynamic>>) return <String>{};
+    final data = result.value;
+    return <String>{
+      (data['name'] ?? '').toString().trim().toLowerCase(),
+      (data['userName'] ?? '').toString().trim().toLowerCase(),
+      (data['email'] ?? '').toString().trim().toLowerCase(),
+    }..removeWhere((value) => value.isEmpty);
   }
 
   Map<String, dynamic>? _asMap(dynamic value) {

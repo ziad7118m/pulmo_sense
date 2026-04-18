@@ -24,7 +24,7 @@ class ArticleCollectionController {
       case ArticleCollectionKind.mineVisible:
         return _articles.mineVisible();
       case ArticleCollectionKind.saved:
-        return _articles.saved();
+        return _articles.favourites();
     }
   }
 

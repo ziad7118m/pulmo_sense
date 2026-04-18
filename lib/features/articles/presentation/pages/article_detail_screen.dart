@@ -72,16 +72,6 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
-  Future<void> _toggleSaved() async {
-    try {
-      final isSaved = await _controller.toggleSaved();
-      if (!mounted) return;
-      AppTopMessage.success(context, isSaved ? 'Saved' : 'Removed from saved');
-    } catch (_) {
-      if (!mounted) return;
-      AppTopMessage.error(context, 'Could not update saved articles right now.');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,12 +110,9 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 isAdmin: data.isAdmin,
                 isOwner: data.isOwner,
                 isFavorite: data.isFavorite,
-                isSaved: data.isSaved,
                 isDeleting: data.isDeleting,
                 isTogglingFavourite: data.isTogglingFavourite,
-                isTogglingSaved: data.isTogglingSaved,
                 onToggleFavourite: _toggleFavourite,
-                onToggleSaved: _toggleSaved,
                 onDelete: _deleteArticle,
               ),
             ],

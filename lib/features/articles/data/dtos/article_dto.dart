@@ -61,16 +61,16 @@ class ArticleDto {
             json['description']?.toString(),
           ]) ??
           '',
-      doctorImage: _firstNonEmpty(<String?>[
+      doctorImage: _normalizeUrl(_firstNonEmpty(<String?>[
             json['doctorImage']?.toString(),
             json['authorAvatarUrl']?.toString(),
             json['doctorAvatarUrl']?.toString(),
             _stringFromMap(nestedAuthor, 'avatarUrl'),
             _stringFromMap(nestedAuthor, 'avatarPath'),
-          ]) ??
+          ])) ??
           '',
       articleImages: images,
-      articleImage: primaryImage ?? '',
+      articleImage: _normalizeUrl(primaryImage) ?? '',
       createdAt: DateTime.tryParse(
             _firstNonEmpty(<String?>[
                   json['createdAt']?.toString(),
@@ -118,17 +118,39 @@ class ArticleDto {
         json['articleImages'] ?? json['images'] ?? json['imageUrls'] ?? json['mediaUrls'];
     if (raw is List) {
       return raw
-          .map((dynamic item) => item.toString().trim())
-          .where((String item) => item.isNotEmpty)
+          .map<String?>((dynamic item) {
+            if (item is Map<String, dynamic>) {
+              return _normalizeUrl(
+                _firstNonEmpty(<String?>[
+                  item['imageUrl']?.toString(),
+                  item['url']?.toString(),
+                  item['path']?.toString(),
+                ]),
+              );
+            }
+            if (item is Map) {
+              final map = Map<String, dynamic>.from(item);
+              return _normalizeUrl(
+                _firstNonEmpty(<String?>[
+                  map['imageUrl']?.toString(),
+                  map['url']?.toString(),
+                  map['path']?.toString(),
+                ]),
+              );
+            }
+            return _normalizeUrl(item.toString());
+          })
+          .whereType<String>()
+          .where((String item) => item.trim().isNotEmpty)
           .toList(growable: false);
     }
 
-    final single = _firstNonEmpty(<String?>[
+    final single = _normalizeUrl(_firstNonEmpty(<String?>[
       json['articleImage']?.toString(),
       json['imageUrl']?.toString(),
       json['thumbnailUrl']?.toString(),
-    ]);
-    return single == null ? const <String>[] : <String>[single];
+    ]));
+    return (single == null || single.isEmpty) ? const <String>[] : <String>[single];
   }
 
   static Map<String, dynamic>? _asMap(dynamic value) {
@@ -148,6 +170,18 @@ class ArticleDto {
       if (normalized.isNotEmpty) return normalized;
     }
     return null;
+  }
+
+  static String? _normalizeUrl(String? value) {
+    final normalized = (value ?? '').trim();
+    if (normalized.isEmpty) return null;
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      return normalized;
+    }
+    if (normalized.startsWith('/')) {
+      return 'https://lungcare.runasp.net$normalized';
+    }
+    return normalized;
   }
 
   static bool _parseBool(dynamic value) {

@@ -64,10 +64,10 @@ class ArticleStore {
     return null;
   }
 
-  Future<void> upsert(LocalArticle article) async {
+  Future<void> upsert(LocalArticle article, {bool notify = true}) async {
     final b = await _articles();
     await b.put(article.id, article.toMap());
-    _notifyChanged();
+    if (notify) _notifyChanged();
   }
 
   Future<void> delete(String id) async {
@@ -135,7 +135,7 @@ class ArticleStore {
     _notifyChanged();
   }
 
-  Future<void> setFavourite(String articleId, bool isFavourite) async {
+  Future<void> setFavourite(String articleId, bool isFavourite, {bool notify = true}) async {
     if (_isAdmin()) return;
     final b = await _favourites();
     final ids = await _favIdsForUser();
@@ -145,10 +145,10 @@ class ArticleStore {
       ids.remove(articleId);
     }
     await b.put(_uid(), ids.toList());
-    _notifyChanged();
+    if (notify) _notifyChanged();
   }
 
-  Future<void> replaceFavourites(Iterable<String> articleIds) async {
+  Future<void> replaceFavourites(Iterable<String> articleIds, {bool notify = true}) async {
     if (_isAdmin()) return;
     final b = await _favourites();
     final ids = articleIds
@@ -157,7 +157,7 @@ class ArticleStore {
         .toSet()
         .toList(growable: false);
     await b.put(_uid(), ids);
-    _notifyChanged();
+    if (notify) _notifyChanged();
   }
 
   Future<List<LocalArticle>> favourites() async {
@@ -196,7 +196,7 @@ class ArticleStore {
     _notifyChanged();
   }
 
-  Future<void> setSaved(String articleId, bool isSaved) async {
+  Future<void> setSaved(String articleId, bool isSaved, {bool notify = true}) async {
     if (_isAdmin()) return;
     final b = await _saved();
     final ids = await _savedIdsForUser();
@@ -206,10 +206,10 @@ class ArticleStore {
       ids.remove(articleId);
     }
     await b.put(_uid(), ids.toList());
-    _notifyChanged();
+    if (notify) _notifyChanged();
   }
 
-  Future<void> replaceSaved(Iterable<String> articleIds) async {
+  Future<void> replaceSaved(Iterable<String> articleIds, {bool notify = true}) async {
     if (_isAdmin()) return;
     final b = await _saved();
     final ids = articleIds
@@ -218,7 +218,7 @@ class ArticleStore {
         .toSet()
         .toList(growable: false);
     await b.put(_uid(), ids);
-    _notifyChanged();
+    if (notify) _notifyChanged();
   }
 
   Future<List<LocalArticle>> saved() async {

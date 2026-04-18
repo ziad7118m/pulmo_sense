@@ -25,11 +25,9 @@ class ArticleDetailController extends ChangeNotifier {
   final BuildContext _context;
 
   bool _isFavorite = false;
-  bool _isSaved = false;
   int _activeImageIndex = 0;
   bool _isDeleting = false;
   bool _isTogglingFavourite = false;
-  bool _isTogglingSaved = false;
 
   Article get article => _article;
 
@@ -40,7 +38,6 @@ class ArticleDetailController extends ChangeNotifier {
         isAdmin: isAdmin,
         isOwner: isOwner,
         isFavorite: _isFavorite,
-        isSaved: _isSaved,
         activeImageIndex: _activeImageIndex,
         isHiddenForCurrentUser: !isAdmin && _article.isHiddenByAdmin,
         createdAtText: DateFormat('MMM d, yyyy  h:mm a').format(_article.createdAt.toLocal()),
@@ -51,14 +48,11 @@ class ArticleDetailController extends ChangeNotifier {
         images: ArticleMediaResolver.galleryImages(_article),
         isDeleting: _isDeleting,
         isTogglingFavourite: _isTogglingFavourite,
-        isTogglingSaved: _isTogglingSaved,
       );
 
   Future<void> initialize() async {
     final favourite = await _articleController.isFavourite(_article.id);
-    final saved = await _articleController.isSaved(_article.id);
     _isFavorite = favourite;
-    _isSaved = saved;
     notifyListeners();
   }
 
@@ -102,23 +96,4 @@ class ArticleDetailController extends ChangeNotifier {
     }
   }
 
-  Future<bool> toggleSaved() async {
-    if (_isTogglingSaved) return _isSaved;
-
-    final previous = _isSaved;
-    _isSaved = !previous;
-    _isTogglingSaved = true;
-    notifyListeners();
-
-    try {
-      await _articleController.toggleSaved(_article.id);
-      return _isSaved;
-    } catch (_) {
-      _isSaved = previous;
-      rethrow;
-    } finally {
-      _isTogglingSaved = false;
-      notifyListeners();
-    }
-  }
 }

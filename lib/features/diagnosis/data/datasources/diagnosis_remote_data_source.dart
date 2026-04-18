@@ -19,12 +19,13 @@ class DiagnosisRemoteDataSource {
       DiagnosisKind.xray => Endpoints.analyzeXray,
     };
 
+    final isXray = request.kind == DiagnosisKind.xray;
     final formData = await MultipartHelper.singleFile(
-      fieldName: 'file',
+      fieldName: isXray ? 'image' : 'file',
       filePath: request.filePath,
       fields: {
-        'recipientType': request.recipientType.apiValue,
-        if ((request.targetPatientId ?? '').trim().isNotEmpty)
+        if (!isXray) 'recipientType': request.recipientType.apiValue,
+        if (!isXray && (request.targetPatientId ?? '').trim().isNotEmpty)
           'targetPatientId': request.targetPatientId!.trim(),
       },
     );

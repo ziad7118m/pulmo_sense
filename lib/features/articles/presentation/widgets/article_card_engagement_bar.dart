@@ -19,9 +19,8 @@ class _ArticleCardEngagementBarState extends State<ArticleCardEngagementBar> {
   late final ValueNotifier<int> _articleChanges;
 
   bool _isFavouriteBusy = false;
-  bool _isSavedBusy = false;
 
-  bool get _isBusy => _isFavouriteBusy || _isSavedBusy;
+  bool get _isBusy => _isFavouriteBusy;
 
   @override
   void initState() {
@@ -47,12 +46,10 @@ class _ArticleCardEngagementBarState extends State<ArticleCardEngagementBar> {
     final controller = context.read<ArticleController>();
     final favouriteCount = await controller.favouriteCount(widget.articleId);
     final isFavourite = await controller.isFavourite(widget.articleId);
-    final isSaved = await controller.isSaved(widget.articleId);
 
     return _ArticleEngagementSnapshot(
       favouriteCount: favouriteCount,
       isFavourite: isFavourite,
-      isSaved: isSaved,
     );
   }
 
@@ -79,21 +76,6 @@ class _ArticleCardEngagementBarState extends State<ArticleCardEngagementBar> {
     }
   }
 
-  Future<void> _toggleSaved() async {
-    if (_isBusy) return;
-
-    setState(() => _isSavedBusy = true);
-    try {
-      await context.read<ArticleController>().toggleSaved(widget.articleId);
-      await _reload();
-    } catch (_) {
-      _showActionError('Failed to update saved articles.');
-    } finally {
-      if (mounted) {
-        setState(() => _isSavedBusy = false);
-      }
-    }
-  }
 
   void _showActionError(String message) {
     if (!mounted) return;
@@ -178,42 +160,6 @@ class _ArticleCardEngagementBarState extends State<ArticleCardEngagementBar> {
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              InkWell(
-                borderRadius: BorderRadius.circular(99),
-                onTap: isBusy ? null : _toggleSaved,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Row(
-                    children: [
-                      if (_isSavedBusy)
-                        const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      else
-                        Icon(
-                          data.isSaved
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_outline_rounded,
-                          size: 18,
-                          color: data.isSaved
-                              ? scheme.primary
-                              : scheme.onSurfaceVariant,
-                        ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Save',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         );
@@ -225,11 +171,9 @@ class _ArticleCardEngagementBarState extends State<ArticleCardEngagementBar> {
 class _ArticleEngagementSnapshot {
   final int favouriteCount;
   final bool isFavourite;
-  final bool isSaved;
 
   const _ArticleEngagementSnapshot({
     this.favouriteCount = 0,
     this.isFavourite = false,
-    this.isSaved = false,
   });
 }
