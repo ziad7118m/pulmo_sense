@@ -8,6 +8,7 @@ class AuthUser {
   final UserRole role;
   final UserAccountStatus status;
   final DateTime createdAt;
+  final bool isDeleted;
 
   const AuthUser({
     required this.id,
@@ -16,6 +17,7 @@ class AuthUser {
     required this.role,
     required this.status,
     required this.createdAt,
+    this.isDeleted = false,
   });
 
   AuthUser copyWith({
@@ -25,6 +27,7 @@ class AuthUser {
     UserRole? role,
     UserAccountStatus? status,
     DateTime? createdAt,
+    bool? isDeleted,
   }) {
     return AuthUser(
       id: id ?? this.id,
@@ -33,6 +36,7 @@ class AuthUser {
       role: role ?? this.role,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }

@@ -100,27 +100,27 @@ class AuthRemoteDataSource {
   Future<Result<List<AuthUserDto>>> fetchUsers({
     UserAccountStatus? status,
     UserRole? role,
-  }) {
-    final shouldUsePendingEndpoint =
-        status == UserAccountStatus.pending && role == null;
-
-    return _client.get<List<AuthUserDto>>(
-      shouldUsePendingEndpoint ? Endpoints.pendingUsers : Endpoints.allUsers,
-      decode: (data) {
-        final list = _extractList(data);
-        final users = list
-            .map((item) => AuthUserDto.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList(growable: false);
-
-        return users.where((user) {
-          final parsedStatus = UserAccountStatusX.fromValue(user.status);
-          final parsedRole = UserRoleX.fromValue(user.role);
-          final matchesStatus = status == null || parsedStatus == status;
-          final matchesRole = role == null || parsedRole == role;
-          return matchesStatus && matchesRole;
-        }).toList(growable: false);
-      },
+  }) async {
+    final allUsersResult = await _client.get<List<AuthUserDto>>(
+      Endpoints.allUsers,
+      decode: (data) => _decodeUsers(data, status: status, role: role),
     );
+
+    if (allUsersResult is Success<List<AuthUserDto>>) {
+      final items = allUsersResult.value;
+      if (items.isNotEmpty || status != UserAccountStatus.pending) {
+        return allUsersResult;
+      }
+    }
+
+    if (status == UserAccountStatus.pending) {
+      return _client.get<List<AuthUserDto>>(
+        Endpoints.pendingUsers,
+        decode: (data) => _decodeUsers(data, status: status, role: role),
+      );
+    }
+
+    return allUsersResult;
   }
 
   Future<Result<AuthUserDto?>> findApprovedPatientById(String userId) {
@@ -188,6 +188,13 @@ class AuthRemoteDataSource {
     );
   }
 
+  Future<Result<Unit>> restoreUser(String id) {
+    return _client.put<Unit>(
+      Endpoints.restoreUser(id),
+      decode: (_) => Unit.value,
+    );
+  }
+
   Future<Result<PasswordResetChallengeDto>> requestPasswordReset(
     ForgotPasswordRequestDto request,
   ) {
@@ -220,6 +227,26 @@ class AuthRemoteDataSource {
       extra: _publicAuthExtra,
       decode: (_) => Unit.value,
     );
+  }
+
+  List<AuthUserDto> _decodeUsers(
+    dynamic data, {
+    UserAccountStatus? status,
+    UserRole? role,
+  }) {
+    final list = _extractList(data);
+    final users = list
+        .map((item) => AuthUserDto.fromJson(Map<String, dynamic>.from(item as Map)))
+        .where((user) => user.id.trim().isNotEmpty)
+        .toList(growable: false);
+
+    return users.where((user) {
+      final parsedStatus = UserAccountStatusX.fromValue(user.status);
+      final parsedRole = UserRoleX.fromValue(user.role);
+      final matchesStatus = status == null || parsedStatus == status;
+      final matchesRole = role == null || parsedRole == role;
+      return matchesStatus && matchesRole;
+    }).toList(growable: false);
   }
 
   List<dynamic> _extractList(dynamic data) {

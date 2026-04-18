@@ -3,19 +3,21 @@ import 'package:lung_diagnosis_app/features/auth/domain/entities/auth_user.dart'
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 
 
-enum AdminUsersKind { pending, active, disabled, rejected, doctors, patients }
+enum AdminUsersKind { pending, active, disabled, rejected, deleted, doctors, patients }
 
 extension AdminUsersKindX on AdminUsersKind {
   String get title {
     switch (this) {
       case AdminUsersKind.pending:
-        return 'Pending';
+        return 'Pending accounts';
       case AdminUsersKind.active:
-        return 'Active';
+        return 'Active accounts';
       case AdminUsersKind.disabled:
-        return 'Disabled';
+        return 'Disabled accounts';
       case AdminUsersKind.rejected:
-        return 'Rejected';
+        return 'Rejected accounts';
+      case AdminUsersKind.deleted:
+        return 'Deleted accounts';
       case AdminUsersKind.doctors:
         return 'Doctors';
       case AdminUsersKind.patients:
@@ -26,17 +28,19 @@ extension AdminUsersKindX on AdminUsersKind {
   String get tileSubtitle {
     switch (this) {
       case AdminUsersKind.pending:
-        return 'Review new accounts';
+        return 'Review signup requests';
       case AdminUsersKind.active:
-        return 'Approved users';
+        return 'Manage approved users';
       case AdminUsersKind.disabled:
-        return 'Temporarily blocked';
+        return 'Re-enable blocked users';
       case AdminUsersKind.rejected:
-        return 'Declined requests';
+        return 'Track rejected requests';
+      case AdminUsersKind.deleted:
+        return 'Restore soft-deleted users';
       case AdminUsersKind.doctors:
-        return 'All doctor accounts';
+        return 'Doctor accounts';
       case AdminUsersKind.patients:
-        return 'All patient accounts';
+        return 'Patient accounts';
     }
   }
 
@@ -50,6 +54,8 @@ extension AdminUsersKindX on AdminUsersKind {
         return Icons.block_rounded;
       case AdminUsersKind.rejected:
         return Icons.close_rounded;
+      case AdminUsersKind.deleted:
+        return Icons.restore_from_trash_rounded;
       case AdminUsersKind.doctors:
         return Icons.medical_services_rounded;
       case AdminUsersKind.patients:
@@ -67,6 +73,8 @@ extension AdminUsersKindX on AdminUsersKind {
         return Icons.lock_open_rounded;
       case AdminUsersKind.rejected:
         return Icons.block_rounded;
+      case AdminUsersKind.deleted:
+        return Icons.delete_sweep_rounded;
       case AdminUsersKind.doctors:
         return Icons.medical_services_rounded;
       case AdminUsersKind.patients:
@@ -84,6 +92,8 @@ extension AdminUsersKindX on AdminUsersKind {
         return 'No disabled accounts';
       case AdminUsersKind.rejected:
         return 'No rejected accounts';
+      case AdminUsersKind.deleted:
+        return 'No deleted accounts';
       case AdminUsersKind.doctors:
         return 'No doctors';
       case AdminUsersKind.patients:
@@ -101,6 +111,8 @@ extension AdminUsersKindX on AdminUsersKind {
         return 'Disabled users from the backend will appear here.';
       case AdminUsersKind.rejected:
         return 'Rejected users from the backend will appear here.';
+      case AdminUsersKind.deleted:
+        return 'Soft-deleted users from the backend will appear here.';
       case AdminUsersKind.doctors:
         return 'Doctor accounts from the backend will appear here.';
       case AdminUsersKind.patients:
@@ -118,6 +130,8 @@ extension AdminUsersKindX on AdminUsersKind {
         return controller.fetchDisabled();
       case AdminUsersKind.rejected:
         return controller.fetchRejected();
+      case AdminUsersKind.deleted:
+        return controller.fetchDeleted();
       case AdminUsersKind.doctors:
         return controller.fetchDoctors();
       case AdminUsersKind.patients:

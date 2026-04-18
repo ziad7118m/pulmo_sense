@@ -94,6 +94,24 @@ class AdminUserActionsController {
     );
   }
 
+  Future<void> restoreAccount(BuildContext context, {required AuthUser user}) async {
+    final ok = await AppConfirmationDialog.show(
+      context,
+      title: 'Restore account?',
+      message: 'This will restore the deleted account and return it to its previous queue.',
+      confirmLabel: 'Restore',
+      cancelLabel: 'Cancel',
+      icon: Icons.restore_rounded,
+    );
+    if (!ok) return;
+
+    await _run(
+      context,
+      action: (ctrl) => ctrl.restoreUser(user.id),
+      successMessage: 'Account restored',
+    );
+  }
+
   Future<void> deleteAccount(BuildContext context, {required AuthUser user}) async {
     final ok = await AppConfirmationDialog.show(
       context,

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_controller.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/controllers/local_admin_page_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_dashboard_snapshot.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_users_kind.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/models/local_admin_page_view_data.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/pages/admin_users_page.dart';
-import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_dashboard_stat_card.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_home_tile.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_insight_panel.dart';
 import 'package:lung_diagnosis_app/routes/app_routes.dart';
@@ -28,7 +26,6 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
     super.initState();
     _controller = LocalAdminPageController(
       authController: context.read<AuthController>(),
-      articleController: context.read<ArticleController>(),
     );
     _viewDataFuture = _controller.loadViewData();
   }
@@ -49,9 +46,7 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
   void _openUsersPage(BuildContext context, AdminUsersKind kind) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => AdminUsersPage(kind: kind),
-      ),
+      MaterialPageRoute(builder: (_) => AdminUsersPage(kind: kind)),
     ).then((_) => _refresh());
   }
 
@@ -59,7 +54,6 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isApiMode = _controller.isApiMode;
 
     return PopScope(
       canPop: false,
@@ -99,7 +93,6 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
             }
 
             final viewData = snapshot.data ?? const LocalAdminPageViewData(snapshot: AdminDashboardSnapshot());
-            final data = viewData.snapshot;
             final tiles = _controller.buildTiles(
               data: viewData,
               onOpenUsers: (kind) => _openUsersPage(context, kind),
@@ -108,237 +101,110 @@ class _LocalAdminPageState extends State<LocalAdminPage> {
 
             return RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: isDark
-                            ? const [Color(0xFF0C274A), Color(0xFF143A6B), Color(0xFF1C5A9A)]
-                            : const [Color(0xFF9ED8FF), Color(0xFF61B5FF), Color(0xFF3488F6)],
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.16),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'Admin control center',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'Manage access, monitor content, and keep the main workflow under control.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          isApiMode
-                              ? 'This backend currently exposes the pending users queue plus approve/reject actions.'
-                              : 'Review each queue, open a profile, and take action with confidence.',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.92),
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (isApiMode) ...[
-                    const SizedBox(height: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: scheme.primaryContainer.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: scheme.outlineVariant.withOpacity(0.7)),
+                        borderRadius: BorderRadius.circular(28),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark
+                              ? const [Color(0xFF0C274A), Color(0xFF143A6B), Color(0xFF1C5A9A)]
+                              : const [Color(0xFF9ED8FF), Color(0xFF61B5FF), Color(0xFF3488F6)],
+                        ),
                       ),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline_rounded, color: scheme.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Active, disabled, rejected, doctor, and patient queues still need backend endpoints before they can be connected in the app.',
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.16),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Live admin tools',
                               style: TextStyle(
-                                color: scheme.onSurface,
-                                height: 1.3,
-                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
                               ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
+                            'Review accounts, separate doctors from patients, and run each admin action from one place.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              height: 1.15,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Use the cards below to open each queue directly. They are connected to the current backend admin endpoints.',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.92),
+                              height: 1.35,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Account queues',
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final crossAxisCount = constraints.maxWidth >= 1100
+                            ? 3
+                            : constraints.maxWidth >= 700
+                                ? 2
+                                : 1;
+                        final tileWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 12)) / crossAxisCount;
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: tiles
+                              .map(
+                                (tile) => SizedBox(
+                                  width: tileWidth,
+                                  child: SizedBox(
+                                    height: 180,
+                                    child: AdminHomeTile(data: tile),
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    AdminInsightPanel(
+                      title: 'Quick snapshot',
+                      subtitle: 'Counts are only for orientation. The main control happens through the queue cards above.',
+                      items: insightItems,
+                    ),
                   ],
-                  const SizedBox(height: 18),
-                  _SectionTitle(
-                    title: 'User overview',
-                    subtitle: isApiMode
-                        ? 'API-backed moderation data available right now.'
-                        : 'Review how the user queues are evolving.',
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: isApiMode ? 1 : 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: isApiMode ? 2.4 : 1.3,
-                    children: [
-                      AdminDashboardStatCard(
-                        title: 'Pending',
-                        value: '${data.pending}',
-                        subtitle: 'Need review',
-                        icon: Icons.how_to_reg_rounded,
-                        accentColor: const Color(0xFFFFA000),
-                      ),
-                      if (!isApiMode) ...[
-                        AdminDashboardStatCard(
-                          title: 'Approved',
-                          value: '${data.approved}',
-                          subtitle: 'Active accounts',
-                          icon: Icons.verified_user_rounded,
-                          accentColor: const Color(0xFF1976D2),
-                        ),
-                        AdminDashboardStatCard(
-                          title: 'Disabled',
-                          value: '${data.disabled}',
-                          subtitle: 'Temporarily blocked',
-                          icon: Icons.lock_outline_rounded,
-                          accentColor: const Color(0xFF546E7A),
-                        ),
-                        AdminDashboardStatCard(
-                          title: 'Rejected',
-                          value: '${data.rejected}',
-                          subtitle: 'Closed requests',
-                          icon: Icons.block_rounded,
-                          accentColor: const Color(0xFFD32F2F),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  _SectionTitle(
-                    title: 'User segments',
-                    subtitle: isApiMode
-                        ? 'Open the pending queue to approve or reject signup requests.'
-                        : 'Open the exact queue you want to inspect next.',
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: scheme.primaryContainer.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        isApiMode ? '${data.pending} pending users' : '${viewData.totalActiveUsers} active users',
-                        style: TextStyle(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: tiles.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isApiMode ? 1 : (MediaQuery.of(context).size.width >= 760 ? 2 : 1),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: isApiMode ? 2.6 : 1.45,
-                    ),
-                    itemBuilder: (context, index) => AdminHomeTile(data: tiles[index]),
-                  ),
-                  const SizedBox(height: 18),
-                  _SectionTitle(
-                    title: 'Content insights',
-                    subtitle: 'Article moderation stats available in the app.',
-                  ),
-                  const SizedBox(height: 12),
-                  AdminInsightPanel(
-                    title: 'Content insights',
-                    subtitle: 'Article moderation stats available in the app.',
-                    items: insightItems,
-                  ),
-                ],
+                ),
               ),
             );
           },
         ),
       ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (trailing != null) ...[
-          const SizedBox(width: 12),
-          trailing!,
-        ],
-      ],
     );
   }
 }

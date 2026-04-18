@@ -17,6 +17,7 @@ class AuthUserMapper {
       role: UserRoleX.fromValue(dto.role),
       status: UserAccountStatusX.fromValue(dto.status),
       createdAt: dto.createdAt ?? DateTime.now(),
+      isDeleted: dto.isDeleted,
     );
   }
 
@@ -31,6 +32,7 @@ class AuthUserMapper {
       role: dto.user.role.trim().isNotEmpty ? dto.user.role.trim() : claims.role,
       status: dto.user.status,
       createdAt: dto.user.createdAt,
+      isDeleted: dto.user.isDeleted,
     );
 
     return AuthSession(

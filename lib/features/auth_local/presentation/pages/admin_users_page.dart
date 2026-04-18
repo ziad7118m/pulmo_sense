@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/controllers/admin_users_page_controller.dart';
+import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_role_scope.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_users_kind.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_search_field.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_user_list_view.dart';
@@ -104,7 +105,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
-                            children: AdminUsersRoleScope.values.map((scope) {
+                            children: AdminRoleScope.values.map((scope) {
                               final selected = scope == _pageController.roleScope;
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
@@ -149,6 +150,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     user: user,
                     authController: controller,
                   ),
+                  filterKey: '${widget.kind.name}:${_pageController.roleScope.name}:${authController.isApiMode}',
                 ),
               ),
             ],

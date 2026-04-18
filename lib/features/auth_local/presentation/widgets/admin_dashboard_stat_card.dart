@@ -37,61 +37,58 @@ class AdminDashboardStatCard extends StatelessWidget {
                 ),
               ],
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(isDark ? 0.18 : 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: accentColor, size: 22),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(isDark ? 0.18 : 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: accentColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     fontSize: 12.5,
-                    height: 1.1,
+                    height: 1.15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              maxLines: 1,
-              style: TextStyle(
-                color: scheme.onSurface,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.24,
-              fontSize: 12,
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.24,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

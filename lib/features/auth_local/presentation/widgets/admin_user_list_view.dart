@@ -28,6 +28,7 @@ class AdminUserListView extends StatefulWidget {
     required this.emptyMessage,
     required this.buildActions,
     this.extraFilter,
+    this.filterKey,
   });
 
   final String query;
@@ -37,6 +38,7 @@ class AdminUserListView extends StatefulWidget {
   final String emptyMessage;
   final AdminUserActionsBuilder buildActions;
   final bool Function(AuthUser user)? extraFilter;
+  final Object? filterKey;
 
   @override
   State<AdminUserListView> createState() => _AdminUserListViewState();
@@ -46,6 +48,7 @@ class _AdminUserListViewState extends State<AdminUserListView> {
   final AdminUserListController _listController = const AdminUserListController();
   Future<AdminUserListViewData>? _future;
   AuthController? _lastAuthController;
+  int? _lastAdminUsersRevision;
 
   @override
   void didChangeDependencies() {
@@ -53,6 +56,7 @@ class _AdminUserListViewState extends State<AdminUserListView> {
     final authController = context.read<AuthController>();
     if (_future == null || !identical(_lastAuthController, authController)) {
       _lastAuthController = authController;
+      _lastAdminUsersRevision = authController.adminUsersRevision;
       _future = _load(authController);
     }
   }
@@ -60,7 +64,7 @@ class _AdminUserListViewState extends State<AdminUserListView> {
   @override
   void didUpdateWidget(covariant AdminUserListView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.query != widget.query || oldWidget.extraFilter != widget.extraFilter) {
+    if (oldWidget.query != widget.query || oldWidget.filterKey != widget.filterKey) {
       final authController = context.read<AuthController>();
       _future = _load(authController);
     }
@@ -102,10 +106,15 @@ class _AdminUserListViewState extends State<AdminUserListView> {
   Widget build(BuildContext context) {
     final controller = context.watch<AuthController>();
 
+    if (_lastAdminUsersRevision != controller.adminUsersRevision) {
+      _lastAdminUsersRevision = controller.adminUsersRevision;
+      _future = _load(controller);
+    }
+
     return RefreshIndicator(
       onRefresh: _refresh,
       child: FutureBuilder<AdminUserListViewData>(
-        future: _future ?? _load(controller),
+        future: _future ??= _load(controller),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());

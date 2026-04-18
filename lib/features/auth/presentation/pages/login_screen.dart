@@ -298,9 +298,7 @@ class _LoginModeHintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = auth.isLocalMode
-        ? 'Demo admin account: admin@local  |  Pass: 123456'
-        : 'Backend mode is active. Sign in with an approved account from the API.';
+    const label = 'Connected to the live backend. Sign in with an approved account.';
 
     return Center(
       child: Container(

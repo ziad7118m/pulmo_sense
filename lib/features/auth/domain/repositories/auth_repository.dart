@@ -34,4 +34,5 @@ abstract class AuthRepository {
   Future<Result<Unit>> disableUser(String id);
   Future<Result<Unit>> enableUser(String id);
   Future<Result<Unit>> deleteUser(String id);
+  Future<Result<Unit>> restoreUser(String id);
 }

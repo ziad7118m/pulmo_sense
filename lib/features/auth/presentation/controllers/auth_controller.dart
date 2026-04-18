@@ -25,6 +25,7 @@ class AuthController extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _didInit = false;
+  int _adminUsersRevision = 0;
 
   AuthController({
     required AuthRepository repository,
@@ -106,6 +107,7 @@ class AuthController extends ChangeNotifier {
   bool get isLoading => _useApi ? _isLoading : _delegate.isLoading;
   String? get error => _useApi ? _error : _delegate.error;
   bool get isAuthenticated => currentUser != null;
+  int get adminUsersRevision => _adminUsersRevision;
   bool get isDoctor => currentUserRole == UserRole.doctor;
   bool get isPatient => currentUserRole == UserRole.patient;
   bool get isAdmin => currentUserRole == UserRole.admin;
@@ -241,7 +243,12 @@ class AuthController extends ChangeNotifier {
 
   Future<List<AuthUser>> fetchPending() async {
     if (_useApi) {
-      return await _fetchUsersRemote(status: UserAccountStatus.pending);
+      final items = await _fetchUsersRemote(status: UserAccountStatus.pending);
+      return _filterRemoteUsers(
+        items,
+        status: UserAccountStatus.pending,
+        includeDeleted: false,
+      );
     }
     return (await _delegate.fetchPending())
         .map(LocalAuthBridge.authUserFromLocalUser)
@@ -255,13 +262,23 @@ class AuthController extends ChangeNotifier {
           .toList(growable: false);
     }
 
-    final items = await _fetchUsersRemote(status: UserAccountStatus.approved);
-    return items.where((user) => !user.role.isAdmin).toList(growable: false);
+    final items = await _fetchAllUsersRemote();
+    return _filterRemoteUsers(
+      items,
+      status: UserAccountStatus.approved,
+      includeDeleted: false,
+      excludeAdmins: true,
+    );
   }
 
   Future<List<AuthUser>> fetchRejected() async {
     if (_useApi) {
-      return await _fetchUsersRemote(status: UserAccountStatus.rejected);
+      final items = await _fetchAllUsersRemote();
+      return _filterRemoteUsers(
+        items,
+        status: UserAccountStatus.rejected,
+        includeDeleted: false,
+      );
     }
     return (await _delegate.fetchRejected())
         .map(LocalAuthBridge.authUserFromLocalUser)
@@ -270,7 +287,12 @@ class AuthController extends ChangeNotifier {
 
   Future<List<AuthUser>> fetchDisabled() async {
     if (_useApi) {
-      return await _fetchUsersRemote(status: UserAccountStatus.disabled);
+      final items = await _fetchAllUsersRemote();
+      return _filterRemoteUsers(
+        items,
+        status: UserAccountStatus.disabled,
+        includeDeleted: false,
+      );
     }
     return (await _delegate.fetchDisabled())
         .map(LocalAuthBridge.authUserFromLocalUser)
@@ -279,9 +301,12 @@ class AuthController extends ChangeNotifier {
 
   Future<List<AuthUser>> fetchDoctors() async {
     if (_useApi) {
-      return await _fetchUsersRemote(
+      final items = await _fetchAllUsersRemote();
+      return _filterRemoteUsers(
+        items,
         status: UserAccountStatus.approved,
         role: UserRole.doctor,
+        includeDeleted: false,
       );
     }
     return (await _delegate.fetchDoctors())
@@ -291,9 +316,12 @@ class AuthController extends ChangeNotifier {
 
   Future<List<AuthUser>> fetchPatients() async {
     if (_useApi) {
-      return await _fetchUsersRemote(
+      final items = await _fetchAllUsersRemote();
+      return _filterRemoteUsers(
+        items,
         status: UserAccountStatus.approved,
         role: UserRole.patient,
+        includeDeleted: false,
       );
     }
     return (await _delegate.fetchPatients())
@@ -354,9 +382,49 @@ class AuthController extends ChangeNotifier {
     await _runRemoteMutation(_repository.enableUser(id));
   }
 
+  Future<List<AuthUser>> fetchDeleted() async {
+    if (!_useApi) return const <AuthUser>[];
+    final items = await _fetchAllUsersRemote();
+    return items.where((user) => user.isDeleted).toList(growable: false);
+  }
+
+  Future<List<AuthUser>> fetchAllUsersForAdminDashboard() async {
+    if (!_useApi) {
+      final approved = await _delegate.fetchApproved();
+      final pending = await _delegate.fetchPending();
+      final rejected = await _delegate.fetchRejected();
+      final disabled = await _delegate.fetchDisabled();
+      return [
+        ...pending,
+        ...approved,
+        ...rejected,
+        ...disabled,
+      ].map(LocalAuthBridge.authUserFromLocalUser).toList(growable: false);
+    }
+
+    return _fetchAllUsersRemote();
+  }
+
   Future<void> deleteUser(String id) async {
     if (!_useApi) return _delegate.deleteUser(id);
-    await _runRemoteMutation(_repository.deleteUser(id));
+    await _runRemoteMutation(
+      _repository.deleteUser(id),
+      treatAsSuccessWhen: (message) {
+        final normalized = message.toLowerCase();
+        return normalized.contains('already') && normalized.contains('isdelete = true');
+      },
+    );
+  }
+
+  Future<void> restoreUser(String id) async {
+    if (!_useApi) return;
+    await _runRemoteMutation(
+      _repository.restoreUser(id),
+      treatAsSuccessWhen: (message) {
+        final normalized = message.toLowerCase();
+        return normalized.contains('already') && normalized.contains('isdelete = false');
+      },
+    );
   }
 
   void clearError() {
@@ -406,15 +474,48 @@ class AuthController extends ChangeNotifier {
     return (result as Success<List<AuthUser>>).value;
   }
 
-  Future<void> _runRemoteMutation(Future<Result<Unit>> future) async {
+
+  Future<List<AuthUser>> _fetchAllUsersRemote() {
+    return _fetchUsersRemote();
+  }
+
+  List<AuthUser> _filterRemoteUsers(
+    List<AuthUser> users, {
+    UserAccountStatus? status,
+    UserRole? role,
+    required bool includeDeleted,
+    bool excludeAdmins = false,
+  }) {
+    return users.where((user) {
+      if (!includeDeleted && user.isDeleted) return false;
+      if (excludeAdmins && user.role.isAdmin) return false;
+      if (status != null && user.status != status) return false;
+      if (role != null && user.role != role) return false;
+      return true;
+    }).toList(growable: false);
+  }
+
+  Future<void> _runRemoteMutation(
+    Future<Result<Unit>> future, {
+    bool Function(String message)? treatAsSuccessWhen,
+  }) async {
     final result = await future;
     if (result is FailureResult<Unit>) {
-      _error = result.failure.message;
+      final message = result.failure.message;
+      if (treatAsSuccessWhen != null && treatAsSuccessWhen(message)) {
+        _error = null;
+        _adminUsersRevision++;
+        notifyListeners();
+        return;
+      }
+
+      _error = message;
       notifyListeners();
-      throw StateError(result.failure.message);
+      throw StateError(message);
     }
 
     _error = null;
+    _adminUsersRevision++;
     notifyListeners();
   }
 

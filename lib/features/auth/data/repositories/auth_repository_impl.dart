@@ -257,4 +257,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<Unit>> deleteUser(String id) {
     return _remote.deleteUser(id);
   }
+
+  @override
+  Future<Result<Unit>> restoreUser(String id) {
+    return _remote.restoreUser(id);
+  }
 }

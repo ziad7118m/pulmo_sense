@@ -4,7 +4,7 @@ class AdminUsersCopy {
   const AdminUsersCopy._();
 
   static bool showRoleFilter(AdminUsersKind kind) {
-    return kind != AdminUsersKind.doctors && kind != AdminUsersKind.patients;
+    return kind != AdminUsersKind.doctors && kind != AdminUsersKind.patients && kind != AdminUsersKind.deleted;
   }
 
   static String heroTitle(AdminUsersKind kind) {
@@ -17,6 +17,8 @@ class AdminUsersCopy {
         return 'Restore or keep accounts blocked';
       case AdminUsersKind.rejected:
         return 'Handle declined requests';
+      case AdminUsersKind.deleted:
+        return 'Restore deleted access';
       case AdminUsersKind.doctors:
         return 'Inspect doctor accounts';
       case AdminUsersKind.patients:
@@ -34,6 +36,8 @@ class AdminUsersCopy {
         return 'Re-enable users when access should be restored.';
       case AdminUsersKind.rejected:
         return 'Keep track of requests that were declined and reopen them if needed.';
+      case AdminUsersKind.deleted:
+        return 'Review soft-deleted accounts and restore them when needed.';
       case AdminUsersKind.doctors:
         return 'Focus on doctor profiles, moderation, and content readiness.';
       case AdminUsersKind.patients:

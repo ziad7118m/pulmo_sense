@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lung_diagnosis_app/features/auth/domain/entities/auth_user.dart';
-import 'package:lung_diagnosis_app/shared/domain/enums/account_status.dart';
-import 'package:lung_diagnosis_app/shared/domain/enums/user_role.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/controllers/admin_user_actions_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_status_badge.dart';
+import 'package:lung_diagnosis_app/shared/domain/enums/account_status.dart';
 
 class AdminUserActionsSection extends StatelessWidget {
   final AuthUser user;
@@ -17,104 +16,85 @@ class AdminUserActionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     const actionsController = AdminUserActionsController();
     final scheme = Theme.of(context).colorScheme;
-    final isApiMode = AdminUserActionsController.isApiMode(context);
-
     final actions = <Widget>[];
-    if (isApiMode) {
-      if (user.status == UserAccountStatus.pending) {
-        actions.addAll([
-          _ActionTile(
-            title: 'Approve account',
-            subtitle: 'Approve this pending account using the live admin API.',
-            icon: Icons.verified_rounded,
-            color: scheme.primary,
-            onTap: () => actionsController.approveAs(
-              context,
-              user: user,
-              role: user.role,
-            ),
-          ),
-          _ActionTile(
-            title: 'Reject request',
-            subtitle: 'Reject this pending account using the live admin API.',
-            icon: Icons.block_rounded,
-            color: const Color(0xFFE25563),
-            onTap: () => actionsController.rejectAccount(context, user: user),
-          ),
-        ]);
-      }
-    } else {
-      if (user.status == UserAccountStatus.pending) {
-        actions.addAll([
-          _ActionTile(
-            title: user.role == UserRole.doctor ? 'Approve as doctor' : 'Approve account',
-            subtitle: user.role == UserRole.doctor
-                ? 'Keep the current doctor role and activate the account.'
-                : 'Activate the patient account and move it to approved users.',
-            icon: Icons.verified_rounded,
-            color: scheme.primary,
-            onTap: () => actionsController.approveAs(
-              context,
-              user: user,
-              role: user.role,
-            ),
-          ),
-          _ActionTile(
-            title: 'Reject request',
-            subtitle: 'Keep the request recorded but stop it from becoming active.',
-            icon: Icons.block_rounded,
-            color: const Color(0xFFE25563),
-            onTap: () => actionsController.rejectAccount(context, user: user),
-          ),
-          _ActionTile(
-            title: 'Disable directly',
-            subtitle: 'Move this account into the disabled queue without approval.',
-            icon: Icons.lock_rounded,
-            color: const Color(0xFF546E7A),
-            onTap: () => actionsController.disableAccount(context, user: user),
-          ),
-        ]);
-      }
 
-      if (user.status == UserAccountStatus.approved) {
-        actions.add(
-          _ActionTile(
-            title: 'Disable account',
-            subtitle: 'Temporarily block access while preserving the user data.',
-            icon: Icons.lock_outline_rounded,
-            color: const Color(0xFF546E7A),
-            onTap: () => actionsController.disableAccount(context, user: user),
-          ),
-        );
-      }
+    if (user.isDeleted) {
+      actions.add(
+        _ActionTile(
+          title: 'Restore account',
+          subtitle: 'Restore this deleted account using the live admin API.',
+          icon: Icons.restore_rounded,
+          color: scheme.primary,
+          onTap: () => actionsController.restoreAccount(context, user: user),
+        ),
+      );
+    }
 
-      if (user.status == UserAccountStatus.disabled) {
-        actions.add(
-          _ActionTile(
-            title: 'Enable account',
-            subtitle: 'Return the user to the approved list and restore access.',
-            icon: Icons.lock_open_rounded,
-            color: scheme.primary,
-            onTap: () => actionsController.enableAccount(context, user: user),
-          ),
-        );
-      }
+    if (!user.isDeleted && user.status.isPending) {
+      actions.addAll([
+        _ActionTile(
+          title: 'Approve account',
+          subtitle: 'Approve this pending account and move it into the active queue.',
+          icon: Icons.verified_rounded,
+          color: scheme.primary,
+          onTap: () => actionsController.approveAs(context, user: user, role: user.role),
+        ),
+        _ActionTile(
+          title: 'Reject request',
+          subtitle: 'Reject this signup request and keep it away from the active flow.',
+          icon: Icons.block_rounded,
+          color: const Color(0xFFE25563),
+          onTap: () => actionsController.rejectAccount(context, user: user),
+        ),
+      ]);
+    }
 
-      if (user.status == UserAccountStatus.rejected) {
-        actions.add(
-          _ActionTile(
-            title: user.role == UserRole.doctor ? 'Approve as doctor' : 'Approve account',
-            subtitle: 'Move this user back into the active approved list.',
-            icon: Icons.verified_rounded,
-            color: scheme.primary,
-            onTap: () => actionsController.approveAs(
-              context,
-              user: user,
-              role: user.role,
-            ),
-          ),
-        );
-      }
+    if (!user.isDeleted && user.status.isApproved) {
+      actions.add(
+        _ActionTile(
+          title: 'Disable account',
+          subtitle: 'Temporarily block this account without deleting it.',
+          icon: Icons.lock_outline_rounded,
+          color: const Color(0xFF546E7A),
+          onTap: () => actionsController.disableAccount(context, user: user),
+        ),
+      );
+    }
+
+    if (!user.isDeleted && user.status.isDisabled) {
+      actions.add(
+        _ActionTile(
+          title: 'Enable account',
+          subtitle: 'Restore this account and return it to the active list.',
+          icon: Icons.lock_open_rounded,
+          color: scheme.primary,
+          onTap: () => actionsController.enableAccount(context, user: user),
+        ),
+      );
+    }
+
+    if (!user.isDeleted && user.status.isRejected) {
+      actions.add(
+        _ActionTile(
+          title: 'Approve again',
+          subtitle: 'Move this rejected account back to the active approved list.',
+          icon: Icons.verified_rounded,
+          color: scheme.primary,
+          onTap: () => actionsController.approveAs(context, user: user, role: user.role),
+        ),
+      );
+    }
+
+    if (!user.isDeleted && !user.status.isPending) {
+      actions.add(
+        _ActionTile(
+          title: 'Delete account',
+          subtitle: 'Remove this account using the live admin API.',
+          icon: Icons.delete_outline_rounded,
+          color: const Color(0xFFE25563),
+          onTap: () => actionsController.deleteAccount(context, user: user),
+        ),
+      );
     }
 
     return Container(
@@ -153,7 +133,7 @@ class AdminUserActionsSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Current state: ${_statusLabel(user.status)}',
+                      user.isDeleted ? 'Current state: Deleted' : 'Current state: ${user.status.displayName}',
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   ],
@@ -171,9 +151,7 @@ class AdminUserActionsSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                isApiMode
-                    ? 'This backend supports pending, active, disabled, and rejected account actions right now.'
-                    : 'No state-change actions are available right now, but you can still delete this account if needed.',
+                'No state-change actions are available for this account right now.',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   height: 1.3,
@@ -181,36 +159,10 @@ class AdminUserActionsSection extends StatelessWidget {
               ),
             )
           else
-            ...actions.expand(
-              (action) => [action, const SizedBox(height: 10)],
-            ),
-          if (!isApiMode) ...[
-            const SizedBox(height: 4),
-            _ActionTile(
-              title: 'Delete account',
-              subtitle: 'Permanently remove the account and its saved profile data.',
-              icon: Icons.delete_outline_rounded,
-              color: const Color(0xFFE25563),
-              onTap: () => actionsController.deleteAccount(context, user: user),
-            ),
-          ],
+            ...actions.expand((action) => [action, const SizedBox(height: 10)]),
         ],
       ),
     );
-  }
-}
-
-
-String _statusLabel(UserAccountStatus status) {
-  switch (status) {
-    case UserAccountStatus.pending:
-      return 'Pending';
-    case UserAccountStatus.approved:
-      return 'Approved';
-    case UserAccountStatus.rejected:
-      return 'Rejected';
-    case UserAccountStatus.disabled:
-      return 'Disabled';
   }
 }
 
@@ -245,6 +197,7 @@ class _ActionTile extends StatelessWidget {
             border: Border.all(color: color.withOpacity(0.18)),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 42,
@@ -278,7 +231,8 @@ class _ActionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right_rounded, color: color),
             ],
           ),
         ),

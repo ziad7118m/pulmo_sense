@@ -3,17 +3,17 @@ import 'package:lung_diagnosis_app/core/widgets/app_top_message.dart';
 import 'package:lung_diagnosis_app/features/auth/domain/entities/auth_user.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/helpers/admin_users_copy.dart';
+import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_role_scope.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/models/admin_users_kind.dart';
 import 'package:lung_diagnosis_app/features/auth_local/presentation/widgets/admin_action_button.dart';
-import 'package:lung_diagnosis_app/shared/domain/enums/user_role.dart';
 import 'package:provider/provider.dart';
 
 class AdminUsersPageController extends ChangeNotifier {
   String _query = '';
-  AdminUsersRoleScope _roleScope = AdminUsersRoleScope.all;
+  AdminRoleScope _roleScope = AdminRoleScope.all;
 
   String get query => _query;
-  AdminUsersRoleScope get roleScope => _roleScope;
+  AdminRoleScope get roleScope => _roleScope;
 
   void setQuery(String value) {
     final normalized = value.trim().toLowerCase();
@@ -22,7 +22,7 @@ class AdminUsersPageController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setRoleScope(AdminUsersRoleScope value) {
+  void setRoleScope(AdminRoleScope value) {
     if (value == _roleScope) return;
     _roleScope = value;
     notifyListeners();
@@ -39,15 +39,7 @@ class AdminUsersPageController extends ChangeNotifier {
     required bool isApiMode,
   }) {
     if (isApiMode || !showRoleFilter(kind, isApiMode: isApiMode)) return true;
-
-    switch (_roleScope) {
-      case AdminUsersRoleScope.all:
-        return true;
-      case AdminUsersRoleScope.doctors:
-        return user.role == UserRole.doctor;
-      case AdminUsersRoleScope.patients:
-        return user.role == UserRole.patient;
-    }
+    return _roleScope.matches(user);
   }
 
   Future<void> runUserAction(
@@ -187,6 +179,19 @@ class AdminUsersPageController extends ChangeNotifier {
               ),
             ),
           ];
+        case AdminUsersKind.deleted:
+          return [
+            AdminActionButton(
+              text: 'Restore',
+              icon: Icons.restore_rounded,
+              isFilled: true,
+              onTap: () => runUserAction(
+                context,
+                action: (controller) => controller.restoreUser(user.id),
+                message: 'Restored ${user.email}',
+              ),
+            ),
+          ];
       }
     }
 
@@ -220,6 +225,19 @@ class AdminUsersPageController extends ChangeNotifier {
               context,
               action: (controller) => controller.approve(user.id, role: user.role),
               message: 'Approved ${user.email}',
+            ),
+          ),
+        ];
+      case AdminUsersKind.deleted:
+        return [
+          AdminActionButton(
+            text: 'Restore',
+            icon: Icons.restore_rounded,
+            isFilled: true,
+            onTap: () => runUserAction(
+              context,
+              action: (controller) => controller.restoreUser(user.id),
+              message: 'Restored ${user.email}',
             ),
           ),
         ];
@@ -282,19 +300,9 @@ class AdminUsersPageController extends ChangeNotifier {
   String heroTitle(AdminUsersKind kind) => AdminUsersCopy.heroTitle(kind);
 
   String heroSubtitle(AdminUsersKind kind) => AdminUsersCopy.heroSubtitle(kind);
+
+  String adminUsersHeroTitle(AdminUsersKind kind) => heroTitle(kind);
+
+  String adminUsersHeroSubtitle(AdminUsersKind kind) => heroSubtitle(kind);
 }
 
-enum AdminUsersRoleScope { all, doctors, patients }
-
-extension AdminUsersRoleScopeX on AdminUsersRoleScope {
-  String get label {
-    switch (this) {
-      case AdminUsersRoleScope.all:
-        return 'All roles';
-      case AdminUsersRoleScope.doctors:
-        return 'Doctors';
-      case AdminUsersRoleScope.patients:
-        return 'Patients';
-    }
-  }
-}

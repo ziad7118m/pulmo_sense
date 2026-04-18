@@ -139,6 +139,7 @@ class _SignupFirstScreenState extends State<SignupFirstScreen> {
                 firstNameController: _firstNameController,
                 lastNameController: _lastNameController,
                 firstNameValidator: AccountValidators.name,
+                lastNameValidator: AccountValidators.name,
               ),
               const SizedBox(height: 16),
               CustomTextField(

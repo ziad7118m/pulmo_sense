@@ -6,12 +6,14 @@ class SignupNameFields extends StatelessWidget {
   final TextEditingController firstNameController;
   final TextEditingController lastNameController;
   final String? Function(String?)? firstNameValidator;
+  final String? Function(String?)? lastNameValidator;
 
   const SignupNameFields({
     super.key,
     required this.firstNameController,
     required this.lastNameController,
     this.firstNameValidator,
+    this.lastNameValidator,
   });
 
   @override
@@ -30,6 +32,7 @@ class SignupNameFields extends StatelessWidget {
           child: CustomTextField(
             labelText: AppStrings.lastName,
             controller: lastNameController,
+            validator: lastNameValidator,
           ),
         ),
       ],

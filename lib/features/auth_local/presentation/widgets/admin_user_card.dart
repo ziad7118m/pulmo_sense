@@ -97,7 +97,24 @@ class AdminUserCard extends StatelessWidget {
                 children: [
                   badge,
                   const SizedBox(height: 8),
-                  AdminStatusBadge(status: user.status, compact: true),
+                  if (user.isDeleted)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E5F5),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'Deleted',
+                        style: TextStyle(
+                          color: Color(0xFF8E24AA),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
+                    )
+                  else
+                    AdminStatusBadge(status: user.status, compact: true),
                 ],
               ),
             ],

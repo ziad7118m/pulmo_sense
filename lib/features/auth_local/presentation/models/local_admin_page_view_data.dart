@@ -6,4 +6,5 @@ class LocalAdminPageViewData {
   const LocalAdminPageViewData({required this.snapshot});
 
   int get totalActiveUsers => snapshot.doctors + snapshot.patients;
+  int get totalUsers => snapshot.pending + snapshot.approved + snapshot.disabled + snapshot.rejected + snapshot.deleted;
 }

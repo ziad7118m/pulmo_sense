@@ -80,9 +80,9 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                     controller: _controller.newPasswordController,
                     obscureText: true,
                     validator: (value) =>
-                        value != null && value.length >= 8
-                            ? null
-                            : 'Minimum 8 characters',
+                        value == null || value.isEmpty
+                            ? 'New password is required'
+                            : null,
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
