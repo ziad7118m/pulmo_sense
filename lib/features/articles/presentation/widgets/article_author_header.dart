@@ -37,6 +37,7 @@ class ArticleAuthorHeader extends StatelessWidget {
     final provider = _provider(doctorImagePath);
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CircleAvatar(
           radius: 30,
@@ -45,39 +46,52 @@ class ArticleAuthorHeader extends StatelessWidget {
           child: provider == null ? Icon(Icons.person, color: scheme.primary) : null,
         ),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              doctorName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                doctorName,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
               ),
-            ),
-            Text(
-              createdAtText,
-              style: TextStyle(color: scheme.onSurfaceVariant),
-            ),
-            if (isHiddenByAdmin)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: scheme.errorContainer,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    'Hidden by admin',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onErrorContainer,
+              Text(
+                createdAtText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+              if (isHiddenByAdmin)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: scheme.errorContainer,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        'Hidden by admin',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onErrorContainer,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ],
     );

@@ -70,6 +70,8 @@ class ArticleCardHeader extends StatelessWidget {
             children: [
               Text(
                 doctorName,
+                maxLines: 1,
+                softWrap: false,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
