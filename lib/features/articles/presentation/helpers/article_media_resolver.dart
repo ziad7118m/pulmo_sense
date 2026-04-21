@@ -17,8 +17,7 @@ class ArticleMediaResolver {
     return resolveDoctorImageForUserContext(
       article: article,
       currentUserId: context.read<AuthController>().currentUserId,
-      currentUserAvatarPath:
-          context.read<ProfileController>().profile?.avatarPath ?? '',
+      currentUserAvatarPath: context.read<ProfileController>().profile?.avatarPath ?? '',
       preferCurrentUserAvatar: preferCurrentUserAvatar,
     );
   }
@@ -33,14 +32,14 @@ class ArticleMediaResolver {
       final uid = (currentUserId ?? '').trim();
       final avatarPath = currentUserAvatarPath.trim();
       if (uid.isNotEmpty && article.createdByUserId == uid) {
-        if (avatarPath.isNotEmpty && File(avatarPath).existsSync()) {
+        if (_isDisplayablePath(avatarPath)) {
           return avatarPath;
         }
       }
     }
 
     final stored = (article.doctorImage ?? '').trim();
-    if (stored.isNotEmpty && File(stored).existsSync()) return stored;
+    if (_isDisplayablePath(stored)) return stored;
 
     return '';
   }
@@ -49,14 +48,13 @@ class ArticleMediaResolver {
     final imgs = article.articleImages;
     if (imgs.isNotEmpty) {
       final p = imgs.first.trim();
-      if (p.isNotEmpty && (p.startsWith('assets/') || File(p).existsSync())) {
+      if (_isDisplayablePath(p)) {
         return p;
       }
     }
 
     final legacy = (article.articleImage ?? '').trim();
-    if (legacy.isNotEmpty &&
-        (legacy.startsWith('assets/') || File(legacy).existsSync())) {
+    if (_isDisplayablePath(legacy)) {
       return legacy;
     }
 
@@ -66,21 +64,27 @@ class ArticleMediaResolver {
   static List<String> galleryImages(Article article, {int max = 3}) {
     final List<String> imgs = [...article.articleImages]
         .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
+        .where(_isDisplayablePath)
         .toList();
 
     if (imgs.isEmpty) {
       final legacy = (article.articleImage ?? '').trim();
-      if (legacy.isNotEmpty) imgs.add(legacy);
+      if (_isDisplayablePath(legacy)) imgs.add(legacy);
     }
 
     return imgs.take(max).toList();
   }
 
   static String resolveCurrentDoctorAvatar(BuildContext context) {
-    final avatarPath =
-        (context.read<ProfileController>().profile?.avatarPath ?? '').trim();
-    final hasAvatar = avatarPath.isNotEmpty && File(avatarPath).existsSync();
-    return hasAvatar ? avatarPath : '';
+    final avatarPath = (context.read<ProfileController>().profile?.avatarPath ?? '').trim();
+    return _isDisplayablePath(avatarPath) ? avatarPath : '';
+  }
+
+  static bool _isDisplayablePath(String path) {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return true;
+    if (trimmed.startsWith('assets/')) return true;
+    return File(trimmed).existsSync();
   }
 }

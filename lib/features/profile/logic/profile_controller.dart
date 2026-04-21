@@ -30,12 +30,12 @@ class ProfileController extends ChangeNotifier {
       return;
     }
 
-    await loadProfile(_userId!, createIfMissing: true);
+    await loadProfile(_userId!, createIfMissing: false);
   }
 
   Future<UserProfile?> loadProfile(
     String userId, {
-    bool createIfMissing = true,
+    bool createIfMissing = false,
   }) async {
     final normalizedId = userId.trim();
     if (normalizedId.isEmpty) return null;
@@ -54,7 +54,7 @@ class ProfileController extends ChangeNotifier {
   }
 
   Future<UserProfile?> current({
-    bool createIfMissing = true,
+    bool createIfMissing = false,
     bool refresh = false,
   }) async {
     final id = _userId;
@@ -66,7 +66,7 @@ class ProfileController extends ChangeNotifier {
   Future<void> refresh() async {
     final id = _userId;
     if (id == null || id.trim().isEmpty) return;
-    await loadProfile(id, createIfMissing: true);
+    await loadProfile(id, createIfMissing: false);
   }
 
   Future<void> updateProfile(UserProfile updated) async {
@@ -110,7 +110,7 @@ class ProfileController extends ChangeNotifier {
 
     final resolvedProfile = profile?.userId == user.id
         ? profile
-        : await loadProfile(user.id, createIfMissing: true);
+        : await loadProfile(user.id, createIfMissing: false);
 
     final currentProfile = resolvedProfile ?? UserProfile.empty(user.id);
     return EditProfileSeed.fromProfile(
@@ -137,10 +137,12 @@ class ProfileController extends ChangeNotifier {
     required String doctorLicense,
     required File? avatarFile,
   }) async {
-    final currentProfile =
-        profile ?? await current(refresh: true) ?? UserProfile.empty(user.id);
+    final currentProfile = profile ??
+        await current(refresh: true, createIfMissing: false) ??
+        UserProfile.empty(user.id);
 
-    final normalizedGender = gender.trim().isEmpty ? AppStrings.male : gender.trim();
+    final normalizedGender =
+        gender.trim().isEmpty ? AppStrings.male : gender.trim();
     final normalizedMarital =
         maritalStatus.trim().isEmpty ? AppStrings.yes : maritalStatus.trim();
 

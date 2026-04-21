@@ -29,8 +29,48 @@ class HomePatient extends StatefulWidget {
 }
 
 class _HomePatientState extends State<HomePatient> {
+  bool _didTriggerInitialSync = false;
+  String? _xraySyncedUserId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didTriggerInitialSync) return;
+    _didTriggerInitialSync = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncXrayHistory();
+    });
+  }
+
+  Future<void> _syncXrayHistory({bool force = false}) async {
+    final repository = context.read<DiagnosisHistoryRepository>();
+    if (!repository.supportsRemoteSync(DiagnosisKind.xray)) {
+      return;
+    }
+
+    final auth = context.read<AuthController>();
+    final userId = (auth.currentUser?.id ?? '').trim();
+    if (userId.isEmpty) {
+      return;
+    }
+
+    if (!force && _xraySyncedUserId == userId) {
+      return;
+    }
+
+    await repository.syncRemoteHistoryByKind(
+      DiagnosisKind.xray,
+      userId: userId,
+    );
+    _xraySyncedUserId = userId;
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   Future<void> _pushAndRefresh(Widget page) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    await _syncXrayHistory(force: true);
     if (mounted) {
       setState(() {});
     }
@@ -51,7 +91,13 @@ class _HomePatientState extends State<HomePatient> {
   }
 
   void _openDetails(DiagnosisKind kind, DiagnosisItem item) {
-    _pushAndRefresh(DiagnosisDetailsScreen(kind: kind, item: item));
+    _pushAndRefresh(
+      DiagnosisDetailsScreen(
+        kind: kind,
+        item: item,
+        allowDelete: kind != DiagnosisKind.xray,
+      ),
+    );
   }
 
   @override
@@ -62,6 +108,13 @@ class _HomePatientState extends State<HomePatient> {
       historyRepository: historyRepository,
       currentUser: authController.currentUser,
     );
+
+    final currentUserId = (authController.currentUser?.id ?? '').trim();
+    if (currentUserId.isNotEmpty && currentUserId != _xraySyncedUserId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _syncXrayHistory();
+      });
+    }
 
     return Scaffold(
       extendBodyBehindAppBar: true,

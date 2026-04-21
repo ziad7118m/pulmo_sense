@@ -3,7 +3,6 @@ import 'package:lung_diagnosis_app/features/medical_data/domain/entities/medical
 import 'package:lung_diagnosis_app/features/medical_data/presentation/models/add_medical_data_view_data.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/models/medical_target_account_option.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/models/medical_target_mode.dart';
-import 'package:lung_diagnosis_app/shared/domain/enums/user_role.dart';
 
 class AddMedicalDataController {
   const AddMedicalDataController();
@@ -59,8 +58,7 @@ class AddMedicalDataController {
     required MedicalTargetMode mode,
     required AuthUser? selectedTarget,
   }) {
-    if (mode == MedicalTargetMode.me) return currentDoctor;
-    return selectedTarget;
+    return currentDoctor;
   }
 
   void resetForm({
@@ -81,9 +79,7 @@ class AddMedicalDataController {
     for (final key in factors.keys) {
       factors[key] = existing?.factors[key] ?? 0;
     }
-    selectedDiseases
-      ..clear()
-      ..addAll(existing?.diseases ?? const <String>[]);
+    selectedDiseases.clear();
   }
 
   List<AuthUser> filterSelectableUsers({
@@ -117,14 +113,7 @@ class AddMedicalDataController {
   }
 
   String saveLabel(MedicalTargetMode mode) {
-    switch (mode) {
-      case MedicalTargetMode.me:
-        return 'Save to my account';
-      case MedicalTargetMode.patient:
-        return 'Save for patient';
-      case MedicalTargetMode.doctor:
-        return 'Save for doctor';
-    }
+    return 'Analyze and save';
   }
 
   AddMedicalDataViewData buildViewData({
@@ -135,18 +124,15 @@ class AddMedicalDataController {
     required bool isLoadingTargets,
     required String? targetLoadError,
   }) {
-    final isDoctor = currentDoctor?.role == UserRole.doctor;
-    final needsTargetSelection = mode != MedicalTargetMode.me && selectedTarget == null;
-
     return AddMedicalDataViewData(
-      isDoctorEditor: isDoctor,
+      isDoctorEditor: currentDoctor != null,
       isSaving: isSaving,
-      mode: mode,
+      mode: MedicalTargetMode.me,
       currentDoctor: currentDoctor == null ? null : toTargetOption(currentDoctor),
-      selectedTarget: selectedTarget == null ? null : toTargetOption(selectedTarget),
-      saveLabel: saveLabel(mode),
-      needsTargetSelection: needsTargetSelection,
-      isLoadingTargets: isLoadingTargets,
+      selectedTarget: null,
+      saveLabel: saveLabel(MedicalTargetMode.me),
+      needsTargetSelection: false,
+      isLoadingTargets: false,
       targetLoadError: targetLoadError,
     );
   }
@@ -158,21 +144,7 @@ class AddMedicalDataController {
     required Set<String> selectedDiseases,
   }) {
     if (currentDoctor == null) return 'Session expired. Please log in again.';
-
-    if (currentDoctor.role != UserRole.doctor) {
-      return 'Only doctors can add or update medical data.';
-    }
-
-    if (owner == null) {
-      return mode == MedicalTargetMode.patient
-          ? 'Please select a patient first.'
-          : 'Please select a doctor first.';
-    }
-
-    if (selectedDiseases.isEmpty) {
-      return 'Please choose diseases or select No diseases.';
-    }
-
+    if (owner == null) return 'Your account is not ready yet. Please log in again.';
     return null;
   }
 
@@ -182,24 +154,18 @@ class AddMedicalDataController {
     required Map<String, double> factors,
     required Set<String> selectedDiseases,
   }) {
-    final diseasesToSave = selectedDiseases.contains(noDiseasesOption)
-        ? <String>[]
-        : (selectedDiseases.toList()..sort());
-
     return MedicalProfileRecord(
       ownerId: owner.id,
       ownerRole: owner.role,
       factors: Map<String, double>.from(factors),
-      diseases: diseasesToSave,
-      createdByDoctorId: doctor.id,
-      createdByDoctorName: doctor.displayName,
+      diseases: const <String>[],
+      createdByDoctorId: owner.id,
+      createdByDoctorName: owner.displayName,
       updatedAt: DateTime.now(),
     );
   }
 
   String emptyAccountsMessage(MedicalTargetMode mode) {
-    return mode == MedicalTargetMode.patient
-        ? 'No patient accounts found.'
-        : 'No doctor accounts found.';
+    return 'No accounts found.';
   }
 }

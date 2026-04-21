@@ -11,6 +11,7 @@ class ArticleCard extends StatelessWidget {
   final String articleImage;
   final bool isAdmin;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool showOwnerDelete;
   final bool showHiddenBadge;
@@ -26,6 +27,7 @@ class ArticleCard extends StatelessWidget {
     required this.articleImage,
     required this.isAdmin,
     this.onTap,
+    this.onEdit,
     this.onDelete,
     this.showOwnerDelete = false,
     this.showHiddenBadge = false,
@@ -87,6 +89,7 @@ class ArticleCard extends StatelessWidget {
                         showHiddenBadge: showHiddenBadge && isAdmin,
                         isHiddenByAdmin: isHiddenByAdmin,
                         showOwnerDelete: showOwnerDelete,
+                        onEdit: onEdit,
                         onDelete: onDelete,
                       ),
                       const SizedBox(height: 10),

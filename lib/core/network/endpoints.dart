@@ -3,9 +3,12 @@ class Endpoints {
   static const String analyzeRecord = '/api/diagnosis/record';
   static const String analyzeAudio = '/api/diagnosis/audio';
   static const String analyzeXray = '/api/XRay/xray';
+  static const String xrayHistory = '/api/XRay/history';
   static const String diagnoses = '/api/diagnoses';
   static const String diagnosesLatest = '/api/diagnoses/latest';
   static const String lungRiskAnalyze = '/api/LungRisks/analyze';
+  static const String lungRiskHistory = '/api/LungRisks/history';
+  static const String lungRisks = '/api/LungRisks';
 
   // Auth
   static const String login = '/api/Authentication/login';
@@ -35,6 +38,7 @@ class Endpoints {
   static const String myProfile = '/api/users/me/profile';
   static const String userProfile = '/api/users';
   static const String medicalProfiles = '/api/medical-profiles';
+  static const String medicalMyProfile = '/api/medical-profiles/me';
 
   // Posts / articles
   static const String articles = '/api/Posts';

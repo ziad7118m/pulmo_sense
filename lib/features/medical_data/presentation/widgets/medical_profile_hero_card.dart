@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/features/medical_data/data/services/lung_risk_analyzer.dart';
 import 'package:lung_diagnosis_app/features/medical_data/domain/entities/medical_profile_record.dart';
 
 class MedicalProfileHeroCard extends StatelessWidget {
@@ -18,6 +19,8 @@ class MedicalProfileHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final highPercent = LungRiskAnalyzer.backendHighPercent(profile);
+    final lowPercent = LungRiskAnalyzer.backendLowPercent(profile);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -56,7 +59,7 @@ class MedicalProfileHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Current medical profile',
+                      'Latest backend medical snapshot',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
@@ -65,7 +68,7 @@ class MedicalProfileHeroCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Saved for this account and synced with dashboard medical factors.',
+                      'Built from the most recent lung risk analysis stored by the backend.',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.84),
                         fontWeight: FontWeight.w600,
@@ -83,7 +86,7 @@ class MedicalProfileHeroCard extends StatelessWidget {
             runSpacing: 12,
             children: [
               _StatPill(label: 'Factors', value: '$factorsCount'),
-              _StatPill(label: 'Diseases', value: '$diseasesCount'),
+              _StatPill(label: 'Result', value: profile.backendResult ?? 'Saved'),
               _StatPill(label: 'Updated', value: updatedLabel),
             ],
           ),
@@ -96,13 +99,13 @@ class MedicalProfileHeroCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.person_rounded, color: Colors.white70, size: 18),
+                const Icon(Icons.insights_rounded, color: Colors.white70, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    profile.createdByDoctorName.trim().isEmpty
-                        ? 'Last update author not available'
-                        : 'Last updated by ${profile.createdByDoctorName}',
+                    highPercent == null
+                        ? 'The backend saved the latest factor values for this account.'
+                        : 'Latest backend scores: high ${highPercent.toStringAsFixed(0)}% and low ${(lowPercent ?? 0).toStringAsFixed(0)}%.',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,

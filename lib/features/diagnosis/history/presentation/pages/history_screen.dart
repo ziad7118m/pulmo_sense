@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/core/responsive/responsive_shell.dart';
 import 'package:lung_diagnosis_app/core/widgets/app_bar.dart';
 import 'package:lung_diagnosis_app/core/widgets/empty_state_card.dart';
@@ -31,7 +32,44 @@ class DiagnosisHistoryScreen extends StatefulWidget {
 }
 
 class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
+  bool _isSyncingRemote = false;
+  bool _didRequestInitialSync = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didRequestInitialSync) return;
+    _didRequestInitialSync = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncRemoteIfNeeded(showLoader: true);
+    });
+  }
+
+  Future<void> _syncRemoteIfNeeded({required bool showLoader}) async {
+    final repository = context.read<DiagnosisHistoryRepository>();
+    if (!repository.supportsRemoteSync(widget.kind)) {
+      return;
+    }
+
+    if (showLoader && mounted) {
+      setState(() => _isSyncingRemote = true);
+    }
+
+    final auth = context.read<AuthController>();
+    final currentUserId = (auth.currentUser?.id ?? '').trim();
+
+    await repository.syncRemoteHistoryByKind(
+      widget.kind,
+      userId: currentUserId.isEmpty ? null : currentUserId,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSyncingRemote = false);
+  }
+
   Future<void> _refresh() async {
+    await _syncRemoteIfNeeded(showLoader: false);
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -44,6 +82,17 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
       kind: widget.kind,
       isDoctor: widget.isDoctor,
       stethoscopeScope: widget.stethoscopeScope,
+    );
+  }
+
+  Widget _loadingState(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+      children: const [
+        SizedBox(height: 120),
+        Center(child: CircularProgressIndicator()),
+      ],
     );
   }
 
@@ -73,7 +122,6 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
     );
   }
 
-
   String? _ownerUserIdForItem(DiagnosisItem item) {
     if (widget.kind != DiagnosisKind.stethoscope || !widget.isDoctor) {
       return null;
@@ -96,6 +144,7 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
               kind: widget.kind,
               item: item,
               ownerUserId: _ownerUserIdForItem(item),
+              allowDelete: widget.kind != DiagnosisKind.xray,
             ),
           ),
         );
@@ -104,6 +153,7 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
   }
 
   Widget _mobile(BuildContext context, DiagnosisHistoryViewData viewData) {
+    if (_isSyncingRemote && viewData.isEmpty) return _loadingState(context);
     if (viewData.isEmpty) return _emptyState(context);
 
     return DiagnosisHistoryCollection.list(
@@ -113,6 +163,7 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
   }
 
   Widget _grid(BuildContext context, DiagnosisHistoryViewData viewData, int columns) {
+    if (_isSyncingRemote && viewData.isEmpty) return _loadingState(context);
     if (viewData.isEmpty) return _emptyState(context);
 
     return DiagnosisHistoryCollection.grid(

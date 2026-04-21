@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/features/medical_data/data/services/lung_risk_analyzer.dart';
 import 'package:lung_diagnosis_app/features/medical_data/domain/entities/medical_profile_record.dart';
 
 class DashboardMedicalSummaryCard extends StatelessWidget {
@@ -13,6 +14,8 @@ class DashboardMedicalSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final highPercent = LungRiskAnalyzer.backendHighPercent(profile);
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -50,7 +53,7 @@ class DashboardMedicalSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Based on ${profile.factors.length} factors and ${profile.diseases.length} disease entries.',
+            'Synced from the latest lung risk history entry returned by the backend.',
             style: const TextStyle(
               color: Colors.white70,
               fontWeight: FontWeight.w600,
@@ -61,17 +64,17 @@ class DashboardMedicalSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _SummaryStat(
-                  label: 'Avg factor',
-                  value: '${profile.averageFactor.toStringAsFixed(0)}%',
+                  label: 'Latest result',
+                  value: profile.backendResult ?? 'Saved',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _SummaryStat(
-                  label: 'Updated by',
-                  value: profile.createdByDoctorName.trim().isEmpty
-                      ? 'Unknown'
-                      : profile.createdByDoctorName,
+                  label: 'High score',
+                  value: highPercent == null
+                      ? '${profile.averageFactor.toStringAsFixed(0)}%'
+                      : '${highPercent.toStringAsFixed(0)}%',
                 ),
               ),
             ],

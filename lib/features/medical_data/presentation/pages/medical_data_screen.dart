@@ -7,8 +7,9 @@ import 'package:lung_diagnosis_app/features/medical_data/logic/medical_profile_c
 import 'package:lung_diagnosis_app/features/medical_data/presentation/models/medical_data_screen_view_data.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/models/medical_target_mode.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/pages/add_medical_data_screen.dart';
+import 'package:lung_diagnosis_app/features/medical_data/presentation/pages/lung_risk_history_screen.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/widgets/medical_data_empty_state.dart';
-import 'package:lung_diagnosis_app/features/medical_data/presentation/widgets/medical_profile_diseases_section.dart';
+import 'package:lung_diagnosis_app/features/medical_data/presentation/widgets/medical_overall_risk_section.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/widgets/medical_profile_factors_section.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/widgets/medical_profile_hero_card.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +35,15 @@ class _MedicalDataScreenState extends State<MedicalDataScreen> {
     await context.read<MedicalProfileController>().refreshCurrent();
   }
 
+  Future<void> _openHistory() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LungRiskHistoryScreen()),
+    );
+    if (!mounted) return;
+    await context.read<MedicalProfileController>().refreshCurrent();
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -47,6 +57,7 @@ class _MedicalDataScreenState extends State<MedicalDataScreen> {
       profile: profile,
       updatedLabel: profile == null ? null : formatNumericDate(profile.updatedAt),
     );
+    final canEditCurrent = auth.currentUser != null;
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -58,8 +69,9 @@ class _MedicalDataScreenState extends State<MedicalDataScreen> {
           ? const Center(child: CircularProgressIndicator())
           : !viewData.hasProfile
               ? MedicalDataEmptyState(
-                  isDoctor: viewData.isDoctor,
+                  canEdit: canEditCurrent,
                   onAddMedicalData: _openEditor,
+                  onOpenHistory: _openHistory,
                 )
               : SafeArea(
                   child: RefreshIndicator(
@@ -79,20 +91,30 @@ class _MedicalDataScreenState extends State<MedicalDataScreen> {
                                   updatedLabel: viewData.updatedLabel!,
                                 ),
                                 const SizedBox(height: 18),
+                                MedicalOverallRiskSection(profile: viewData.profile!),
+                                const SizedBox(height: 20),
                                 MedicalProfileFactorsSection(
                                   factors: viewData.profile!.factors.entries.toList(),
                                 ),
-                                const SizedBox(height: 20),
-                                MedicalProfileDiseasesSection(
-                                  diseases: viewData.profile!.diseases,
-                                ),
                                 const SizedBox(height: 24),
-                                if (viewData.isDoctor)
-                                  FilledButton.icon(
-                                    onPressed: medicalController.isSaving ? null : () => _openEditor(),
-                                    icon: const Icon(Icons.edit_rounded),
-                                    label: const Text('Edit my medical data'),
-                                  ),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: medicalController.isSaving || !canEditCurrent
+                                          ? null
+                                          : () => _openEditor(),
+                                      icon: const Icon(Icons.edit_rounded),
+                                      label: const Text('Update lung risk factors'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _openHistory,
+                                      icon: const Icon(Icons.history_rounded),
+                                      label: const Text('Open risk history'),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),

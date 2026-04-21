@@ -16,19 +16,33 @@ class ArticleAuthorHeader extends StatelessWidget {
     required this.isHiddenByAdmin,
   });
 
+  ImageProvider<Object>? _provider(String path) {
+    final normalized = path.trim();
+    if (normalized.isEmpty) return null;
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      return NetworkImage(normalized);
+    }
+    if (normalized.startsWith('assets/')) {
+      return AssetImage(normalized);
+    }
+    if (File(normalized).existsSync()) {
+      return FileImage(File(normalized));
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final hasImage = doctorImagePath.trim().isNotEmpty &&
-        File(doctorImagePath).existsSync();
+    final provider = _provider(doctorImagePath);
 
     return Row(
       children: [
         CircleAvatar(
           radius: 30,
           backgroundColor: scheme.primaryContainer,
-          backgroundImage: hasImage ? FileImage(File(doctorImagePath)) : null,
-          child: hasImage ? null : Icon(Icons.person, color: scheme.primary),
+          backgroundImage: provider,
+          child: provider == null ? Icon(Icons.person, color: scheme.primary) : null,
         ),
         const SizedBox(width: 12),
         Column(
@@ -49,8 +63,7 @@ class ArticleAuthorHeader extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: scheme.errorContainer,
                     borderRadius: BorderRadius.circular(99),

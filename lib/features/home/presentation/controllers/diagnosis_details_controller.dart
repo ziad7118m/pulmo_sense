@@ -22,6 +22,13 @@ class DiagnosisDetailsController {
     final audioPath = (item.audioPath ?? '').trim();
     final imagePath = (item.imagePath ?? '').trim();
     final normalizedOwnerUserId = ownerUserId?.trim();
+    final storedResult = historyRepository.getResultForItemByKind(
+      kind,
+      item.id,
+      ownerUserId: (normalizedOwnerUserId == null || normalizedOwnerUserId.isEmpty)
+          ? null
+          : normalizedOwnerUserId,
+    );
     final lastResult = historyRepository.getLastResultByKind(
       kind,
       ownerUserId: (normalizedOwnerUserId == null || normalizedOwnerUserId.isEmpty)
@@ -31,7 +38,7 @@ class DiagnosisDetailsController {
 
     return DiagnosisDetailsViewData(
       kind: kind,
-      result: lastResult ?? _fallbackResult(),
+      result: storedResult ?? lastResult ?? _fallbackResult(),
       hasAudio: kind.isAudio && audioPath.isNotEmpty,
       hasImage: kind.isImaging && imagePath.isNotEmpty,
       audioPath: audioPath.isEmpty ? null : audioPath,

@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lung_diagnosis_app/core/constants/app_strings.dart';
+import 'package:lung_diagnosis_app/features/articles/domain/entities/article.dart';
 import 'package:lung_diagnosis_app/features/articles/domain/entities/article_draft.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_controller.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/models/add_article_view_data.dart';
@@ -15,14 +15,22 @@ class AddArticleController extends ChangeNotifier {
     required ArticleController articleController,
     required AuthController authController,
     required ProfileController profileController,
+    Article? initialArticle,
     this.maxImages = 3,
   })  : _articleController = articleController,
         _authController = authController,
-        _profileController = profileController;
+        _profileController = profileController,
+        _initialArticle = initialArticle {
+    if (_initialArticle != null) {
+      titleController.text = _initialArticle!.title;
+      contentController.text = _initialArticle!.content;
+    }
+  }
 
   final ArticleController _articleController;
   final AuthController _authController;
   final ProfileController _profileController;
+  final Article? _initialArticle;
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
@@ -37,6 +45,7 @@ class AddArticleController extends ChangeNotifier {
   bool get isDoctor => _authController.currentUserRole == UserRole.doctor;
   bool get isPosting => _isPosting;
   bool get isPosted => _isPosted;
+  bool get isEditing => _initialArticle != null;
   bool get canAddImages => _images.length < maxImages;
   List<File> get images => List<File>.unmodifiable(_images);
   String? get errorMessage => _errorMessage;
@@ -45,10 +54,12 @@ class AddArticleController extends ChangeNotifier {
         isDoctor: isDoctor,
         isPosting: _isPosting,
         isPosted: _isPosted,
+        isEditing: isEditing,
         maxImages: maxImages,
         doctorName: _authController.currentUserName ?? AppStrings.drName,
         avatarPath: (_profileController.profile?.avatarPath ?? '').trim(),
         images: List<File>.unmodifiable(_images),
+        existingImageCount: _initialArticle?.articleImages.length ?? 0,
         errorMessage: _errorMessage,
       );
 
@@ -92,19 +103,23 @@ class AddArticleController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> post() async {
-    final draft = _buildDraft();
+  Future<Article?> submit() async {
     _errorMessage = null;
     _isPosting = true;
     notifyListeners();
 
     try {
-      await _articleController.createFromDraft(draft);
+      if (isEditing) {
+        final updated = await _articleController.upsert(_buildUpdatedArticle());
+        return updated;
+      }
+
+      final created = await _articleController.createFromDraft(_buildDraft());
       _isPosted = true;
-      return true;
+      return created;
     } catch (error) {
       _errorMessage = _resolveErrorMessage(error);
-      return false;
+      return null;
     } finally {
       _isPosting = false;
       notifyListeners();
@@ -122,10 +137,30 @@ class AddArticleController extends ChangeNotifier {
     );
   }
 
+  Article _buildUpdatedArticle() {
+    final base = _initialArticle!;
+    final nextImages = _images.isEmpty
+        ? List<String>.from(base.articleImages)
+        : _images.map((file) => file.path).toList(growable: false);
+
+    return base.copyWith(
+      title: titleController.text.trim(),
+      content: contentController.text.trim(),
+      articleImages: nextImages,
+      articleImage: nextImages.isEmpty ? base.articleImage : nextImages.first,
+      doctorName: _authController.currentUserName ?? base.doctorName,
+      doctorImage: (_profileController.profile?.avatarPath ?? '').trim().isEmpty
+          ? base.doctorImage
+          : (_profileController.profile?.avatarPath ?? '').trim(),
+    );
+  }
+
   String _resolveErrorMessage(Object error) {
     final message = error.toString().trim();
     if (message.isEmpty) {
-      return 'Unable to post article right now.';
+      return isEditing
+          ? 'Unable to update article right now.'
+          : 'Unable to post article right now.';
     }
 
     if (message.startsWith('Exception: ')) {

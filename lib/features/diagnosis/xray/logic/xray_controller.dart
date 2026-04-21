@@ -137,8 +137,6 @@ class XRayController extends ChangeNotifier {
 
     res.when(
       success: (result) {
-        _historyRepo.setLastResultByKind(DiagnosisKind.xray, result);
-
         final item = DiagnosisItem(
           id: DiagnosisItem.nextId(),
           dateTime: DateFormat('d MMM yyyy • h:mm a').format(DateTime.now()),
@@ -146,7 +144,10 @@ class XRayController extends ChangeNotifier {
           percentage: (result.confidence * 100).clamp(0, 100).toDouble(),
           imagePath: path,
         );
+
         _historyRepo.addItemByKind(DiagnosisKind.xray, item);
+        _historyRepo.setLastResultByKind(DiagnosisKind.xray, result);
+        _historyRepo.setResultForItemByKind(DiagnosisKind.xray, item.id, result);
 
         _savedToHistory = true;
         lastCompletedAt = DateTime.now();

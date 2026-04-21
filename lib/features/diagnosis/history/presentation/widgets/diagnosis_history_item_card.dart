@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/core/widgets/app_image.dart';
 import 'package:lung_diagnosis_app/core/widgets/fullscreen_image_view.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/domain/entities/diagnosis_item.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/presentation/helpers/diagnosis_history_item_meta_resolver.dart';
@@ -29,9 +30,12 @@ class DiagnosisHistoryItemCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final path = item.imagePath!;
     final isAsset = path.startsWith('assets/');
+    final isNetwork = path.startsWith('http://') || path.startsWith('https://');
     final ImageProvider<Object> previewImage = isAsset
         ? AssetImage(path) as ImageProvider<Object>
-        : FileImage(File(path)) as ImageProvider<Object>;
+        : isNetwork
+            ? NetworkImage(path) as ImageProvider<Object>
+            : FileImage(File(path)) as ImageProvider<Object>;
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -55,7 +59,14 @@ class DiagnosisHistoryItemCard extends StatelessWidget {
           color: scheme.surfaceVariant.withOpacity(0.7),
           child: isAsset
               ? Image.asset(path, fit: BoxFit.contain)
-              : Image.file(File(path), fit: BoxFit.contain),
+              : isNetwork
+                  ? AppImage(
+                      path: path,
+                      fit: BoxFit.contain,
+                      loadingLabel: 'Loading X-ray...',
+                      errorLabel: 'Preview unavailable',
+                    )
+                  : Image.file(File(path), fit: BoxFit.contain),
         ),
       ),
     );
@@ -80,7 +91,8 @@ class DiagnosisHistoryItemCard extends StatelessWidget {
           child: Row(
             children: [
               _thumb(context),
-              if (kind == DiagnosisKind.xray && item.imagePath != null) const SizedBox(width: 12),
+              if (kind == DiagnosisKind.xray && item.imagePath != null)
+                const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

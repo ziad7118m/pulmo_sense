@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:lung_diagnosis_app/features/articles/domain/entities/article.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_controller.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/helpers/article_media_resolver.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/models/article_detail_view_data.dart';
+import 'package:lung_diagnosis_app/features/auth/domain/entities/auth_user.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lung_diagnosis_app/shared/domain/enums/user_role.dart';
 import 'package:flutter/widgets.dart';
@@ -19,7 +19,7 @@ class ArticleDetailController extends ChangeNotifier {
         _authController = authController,
         _context = context;
 
-  final Article _article;
+  Article _article;
   final ArticleController _articleController;
   final AuthController _authController;
   final BuildContext _context;
@@ -32,7 +32,7 @@ class ArticleDetailController extends ChangeNotifier {
   Article get article => _article;
 
   bool get isAdmin => _authController.currentUser?.role == UserRole.admin;
-  bool get isOwner => _authController.currentUser?.id == _article.createdByUserId;
+  bool get isOwner => _matchesCurrentUser(_authController.currentUser, _article);
 
   ArticleDetailViewData get viewData => ArticleDetailViewData(
         isAdmin: isAdmin,
@@ -53,6 +53,14 @@ class ArticleDetailController extends ChangeNotifier {
   Future<void> initialize() async {
     final favourite = await _articleController.isFavourite(_article.id);
     _isFavorite = favourite;
+    notifyListeners();
+  }
+
+  void replaceArticle(Article article) {
+    _article = article;
+    if (_activeImageIndex >= viewData.images.length) {
+      _activeImageIndex = 0;
+    }
     notifyListeners();
   }
 
@@ -96,4 +104,24 @@ class ArticleDetailController extends ChangeNotifier {
     }
   }
 
+  bool _matchesCurrentUser(AuthUser? user, Article article) {
+    if (user == null) return false;
+
+    final articleOwnerId = article.createdByUserId.trim().toLowerCase();
+    final userId = user.id.trim().toLowerCase();
+    if (articleOwnerId.isNotEmpty && userId.isNotEmpty && articleOwnerId == userId) {
+      return true;
+    }
+
+    final doctorName = article.doctorName.trim().toLowerCase();
+    if (doctorName.isEmpty) return false;
+
+    final identities = <String>{
+      user.displayName.trim().toLowerCase(),
+      user.email.trim().toLowerCase(),
+      user.id.trim().toLowerCase(),
+    }..removeWhere((value) => value.isEmpty);
+
+    return identities.contains(doctorName);
+  }
 }

@@ -4,7 +4,17 @@ class LocalFileUtils {
   const LocalFileUtils._();
 
   static bool isManagedLocalPath(String? path) {
-    return path != null && path.isNotEmpty && !path.startsWith('assets/');
+    final normalized = (path ?? '').trim();
+    if (normalized.isEmpty) return false;
+    if (normalized.startsWith('assets/')) return false;
+
+    final uri = Uri.tryParse(normalized);
+    final scheme = (uri?.scheme ?? '').toLowerCase();
+    if (scheme == 'http' || scheme == 'https' || scheme == 'data') {
+      return false;
+    }
+
+    return true;
   }
 
   static Future<void> deleteIfExists(String? path) async {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lung_diagnosis_app/core/widgets/empty_state_card.dart';
-import 'package:lung_diagnosis_app/features/dashboard/presentation/widgets/dashboard_diseases_panel.dart';
 import 'package:lung_diagnosis_app/features/dashboard/presentation/widgets/dashboard_medical_summary_card.dart';
 import 'package:lung_diagnosis_app/features/dashboard/presentation/widgets/dashboard_section_header.dart';
 import 'package:lung_diagnosis_app/features/medical_data/domain/entities/medical_profile_record.dart';
@@ -27,7 +26,6 @@ class DashboardMedicalProfileSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final factors = medical?.factors.entries.toList() ?? const <MapEntry<String, double>>[];
-    final diseases = medical?.diseases ?? const <String>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,9 +35,9 @@ class DashboardMedicalProfileSection extends StatelessWidget {
           title: 'Medical factors',
           subtitle: medical == null
               ? isReadOnly
-                  ? 'This patient has no saved medical profile yet.'
-                  : 'Your dashboard will show your medical profile once it is added.'
-              : 'Live snapshot from your medical data.',
+                  ? 'This backend currently exposes lung risk factors for the signed-in account only.'
+                  : 'Your dashboard will show the latest backend lung risk factors after your next saved analysis.'
+              : 'Latest factor snapshot from your backend lung risk history.',
           trailingLabel: medical == null ? null : updatedLabel,
         ),
         const SizedBox(height: 12),
@@ -47,16 +45,12 @@ class DashboardMedicalProfileSection extends StatelessWidget {
           EmptyStateCard(
             icon: isDoctor ? Icons.add_chart_rounded : Icons.health_and_safety_outlined,
             title: isReadOnly
-                ? 'No medical data found for this patient'
-                : isDoctor
-                    ? 'No medical data for this account yet'
-                    : 'No medical data added yet',
+                ? 'No backend medical data for this patient view'
+                : 'No backend medical data yet',
             message: isReadOnly
-                ? 'Open the patient medical data later once a doctor has saved it to this account.'
-                : isDoctor
-                    ? 'You can add medical data for yourself or for another doctor from the medical data section.'
-                    : 'You need to visit a doctor so they can add your medical data to this account.',
-            actionText: isReadOnly ? null : (isDoctor ? 'Add medical data' : null),
+                ? 'Open the patient account directly if you need their own backend risk history. This app build does not map one user medical data onto another user.'
+                : 'Run the lung risk analysis once and the dashboard will automatically use the latest saved backend values.',
+            actionText: isReadOnly ? null : 'Update lung risk factors',
             onAction: isReadOnly ? null : onAddMedicalData,
           )
         else ...[
@@ -75,22 +69,6 @@ class DashboardMedicalProfileSection extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 18),
-          DashboardSectionHeader(
-            icon: Icons.medical_information_rounded,
-            title: 'Diseases',
-            subtitle: 'Conditions saved for this account.',
-            trailingLabel: diseases.isEmpty ? 'Empty' : '${diseases.length} item${diseases.length == 1 ? '' : 's'}',
-          ),
-          const SizedBox(height: 12),
-          if (diseases.isEmpty)
-            const EmptyStateCard(
-              icon: Icons.healing_outlined,
-              title: 'No diseases added',
-              message: 'The disease section is empty for this account right now.',
-            )
-          else
-            DashboardDiseasesPanel(diseases: diseases),
           if (onOpenMedicalData != null) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(

@@ -11,6 +11,8 @@ class AppImage extends StatelessWidget {
     this.color,
     this.borderRadius,
     this.placeholder,
+    this.loadingLabel,
+    this.errorLabel,
   });
 
   final String path;
@@ -19,11 +21,11 @@ class AppImage extends StatelessWidget {
   final BoxFit fit;
   final Color? color;
   final BorderRadius? borderRadius;
-
-  /// Widget يظهر لو الصورة فشلت
   final Widget? placeholder;
+  final String? loadingLabel;
+  final String? errorLabel;
 
-  bool get _isNetwork => path.startsWith('http');
+  bool get _isNetwork => path.startsWith('http://') || path.startsWith('https://');
   bool get _isSvg => path.toLowerCase().endsWith('.svg');
 
   @override
@@ -37,7 +39,7 @@ class AppImage extends StatelessWidget {
         height: height,
         fit: fit,
         colorFilter:
-        color != null ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
+            color != null ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
       );
     } else if (_isNetwork) {
       image = Image.network(
@@ -45,8 +47,17 @@ class AppImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (_, __, ___) =>
-        placeholder ?? const Icon(Icons.broken_image),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _ImageLoadingCard(width: width, height: height);
+        },
+        errorBuilder: (_, __, ___) => placeholder ??
+            _ImageStatusCard(
+              width: width,
+              height: height,
+              label: errorLabel ?? 'Image unavailable',
+              icon: Icons.broken_image_outlined,
+            ),
       );
     } else {
       image = Image.asset(
@@ -54,8 +65,13 @@ class AppImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (_, __, ___) =>
-        placeholder ?? const Icon(Icons.broken_image),
+        errorBuilder: (_, __, ___) => placeholder ??
+            _ImageStatusCard(
+              width: width,
+              height: height,
+              label: errorLabel ?? 'Image unavailable',
+              icon: Icons.broken_image_outlined,
+            ),
       );
     }
 
@@ -64,5 +80,144 @@ class AppImage extends StatelessWidget {
     }
 
     return image;
+  }
+}
+
+class _ImageLoadingCard extends StatelessWidget {
+  const _ImageLoadingCard({
+    this.width,
+    this.height,
+  });
+
+  final double? width;
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.surfaceVariant.withOpacity(0.85),
+            scheme.surface.withOpacity(0.95),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: scheme.primary.withOpacity(0.10),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageStatusCard extends StatelessWidget {
+  const _ImageStatusCard({
+    required this.label,
+    required this.icon,
+    this.child,
+    this.width,
+    this.height,
+  });
+
+  final String label;
+  final IconData icon;
+  final Widget? child;
+  final double? width;
+  final double? height;
+
+  bool get _isCompact {
+    final resolvedWidth = width ?? 0;
+    final resolvedHeight = height ?? 0;
+    return (resolvedWidth > 0 && resolvedWidth <= 96) ||
+        (resolvedHeight > 0 && resolvedHeight <= 96);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.surfaceVariant.withOpacity(0.85),
+            scheme.surface.withOpacity(0.95),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: _isCompact
+              ? Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withOpacity(0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: child ?? Icon(icon, color: scheme.primary, size: 22),
+                  ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withOpacity(0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: child ?? Icon(icon, color: scheme.primary, size: 22),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
   }
 }

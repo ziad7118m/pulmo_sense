@@ -24,6 +24,12 @@ class ArticleController extends ChangeNotifier {
     return created;
   }
 
+  Future<Article> upsert(Article article) async {
+    final updated = await _repository.upsert(article);
+    notifyListeners();
+    return updated;
+  }
+
   Future<void> delete(String articleId) async {
     await _repository.delete(articleId);
     notifyListeners();

@@ -42,6 +42,32 @@ abstract class DiagnosisHistoryRepository {
     String? ownerUserId,
   });
 
+  DiagnosisResult? getResultForItem(
+    String type,
+    String itemId, {
+    String? userId,
+    String? ownerUserId,
+  });
+
+  void setResultForItem(
+    String type,
+    String itemId,
+    DiagnosisResult result, {
+    String? userId,
+    String? ownerUserId,
+  });
+
+  bool supportsRemoteSync(DiagnosisKind kind) => false;
+
+  Future<List<DiagnosisItem>> syncRemoteHistoryByKind(
+    DiagnosisKind kind, {
+    String? userId,
+    String? ownerUserId,
+  }) async => getHistoryByKind(
+        kind,
+        userId: _normalizeUserId(userId, ownerUserId),
+      );
+
   String? _normalizeUserId(String? userId, String? ownerUserId) =>
       (ownerUserId ?? userId)?.trim().isEmpty == true ? null : (ownerUserId ?? userId);
 
@@ -137,4 +163,41 @@ abstract class DiagnosisHistoryRepository {
     DiagnosisResult result,
     String userId,
   ) => setLastResultByKind(kind, result, userId: userId);
+
+  DiagnosisResult? getResultForItemByKind(
+    DiagnosisKind kind,
+    String itemId, {
+    String? userId,
+    String? ownerUserId,
+  }) => getResultForItem(
+        kind.storageKey,
+        itemId,
+        userId: _normalizeUserId(userId, ownerUserId),
+      );
+
+  DiagnosisResult? getResultForItemByKindForUser(
+    DiagnosisKind kind,
+    String itemId,
+    String userId,
+  ) => getResultForItemByKind(kind, itemId, userId: userId);
+
+  void setResultForItemByKind(
+    DiagnosisKind kind,
+    String itemId,
+    DiagnosisResult result, {
+    String? userId,
+    String? ownerUserId,
+  }) => setResultForItem(
+        kind.storageKey,
+        itemId,
+        result,
+        userId: _normalizeUserId(userId, ownerUserId),
+      );
+
+  void setResultForItemByKindForUser(
+    DiagnosisKind kind,
+    String itemId,
+    DiagnosisResult result,
+    String userId,
+  ) => setResultForItemByKind(kind, itemId, result, userId: userId);
 }

@@ -8,6 +8,10 @@ class MedicalProfile {
   final String createdByDoctorId;
   final String createdByDoctorName;
   final DateTime updatedAt;
+  final String? backendResult;
+  final double? backendLow;
+  final double? backendMedium;
+  final double? backendHigh;
 
   const MedicalProfile({
     required this.ownerId,
@@ -17,6 +21,10 @@ class MedicalProfile {
     required this.createdByDoctorId,
     required this.createdByDoctorName,
     required this.updatedAt,
+    this.backendResult,
+    this.backendLow,
+    this.backendMedium,
+    this.backendHigh,
   });
 
   MedicalProfile copyWith({
@@ -27,6 +35,10 @@ class MedicalProfile {
     String? createdByDoctorId,
     String? createdByDoctorName,
     DateTime? updatedAt,
+    String? backendResult,
+    double? backendLow,
+    double? backendMedium,
+    double? backendHigh,
   }) {
     return MedicalProfile(
       ownerId: ownerId ?? this.ownerId,
@@ -36,6 +48,10 @@ class MedicalProfile {
       createdByDoctorId: createdByDoctorId ?? this.createdByDoctorId,
       createdByDoctorName: createdByDoctorName ?? this.createdByDoctorName,
       updatedAt: updatedAt ?? this.updatedAt,
+      backendResult: backendResult ?? this.backendResult,
+      backendLow: backendLow ?? this.backendLow,
+      backendMedium: backendMedium ?? this.backendMedium,
+      backendHigh: backendHigh ?? this.backendHigh,
     );
   }
 
@@ -54,6 +70,10 @@ class MedicalProfile {
       'createdByDoctorId': createdByDoctorId,
       'createdByDoctorName': createdByDoctorName,
       'updatedAt': updatedAt.toIso8601String(),
+      'backendResult': backendResult,
+      'backendLow': backendLow,
+      'backendMedium': backendMedium,
+      'backendHigh': backendHigh,
     };
   }
 
@@ -69,6 +89,17 @@ class MedicalProfile {
       createdByDoctorId: (map['createdByDoctorId'] ?? '').toString(),
       createdByDoctorName: (map['createdByDoctorName'] ?? '').toString(),
       updatedAt: DateTime.tryParse((map['updatedAt'] ?? '').toString()) ?? DateTime.now(),
+      backendResult: (map['backendResult'] ?? '').toString().trim().isEmpty
+          ? null
+          : (map['backendResult'] ?? '').toString(),
+      backendLow: _asDouble(map['backendLow']),
+      backendMedium: _asDouble(map['backendMedium']),
+      backendHigh: _asDouble(map['backendHigh']),
     );
+  }
+
+  static double? _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
   }
 }

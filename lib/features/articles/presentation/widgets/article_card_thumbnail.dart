@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/core/widgets/app_image.dart';
 
 class ArticleCardThumbnail extends StatelessWidget {
   final String articleImage;
@@ -10,32 +9,26 @@ class ArticleCardThumbnail extends StatelessWidget {
     required this.articleImage,
   });
 
-  bool _hasFile(String path) {
-    return path.trim().isNotEmpty &&
-        (path.startsWith('assets/') || File(path).existsSync());
+  bool _hasImage(String path) {
+    final normalized = path.trim();
+    return normalized.isNotEmpty;
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final hasArticleImage = _hasFile(articleImage);
+    final hasArticleImage = _hasImage(articleImage);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: hasArticleImage
-          ? (articleImage.startsWith('assets/')
-              ? Image.asset(
-                  articleImage,
-                  width: 84,
-                  height: 84,
-                  fit: BoxFit.cover,
-                )
-              : Image.file(
-                  File(articleImage),
-                  width: 84,
-                  height: 84,
-                  fit: BoxFit.cover,
-                ))
+          ? AppImage(
+              path: articleImage,
+              width: 84,
+              height: 84,
+              fit: BoxFit.cover,
+              errorLabel: '',
+            )
           : Container(
               width: 84,
               height: 84,

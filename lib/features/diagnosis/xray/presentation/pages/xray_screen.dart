@@ -93,6 +93,7 @@ class _XRayScreenState extends State<XRayScreen>
             builder: (_) => DiagnosisDetailsScreen(
               kind: DiagnosisKind.xray,
               item: latestItem,
+              allowDelete: false,
             ),
           ),
         );

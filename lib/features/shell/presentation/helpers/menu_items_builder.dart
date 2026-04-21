@@ -12,6 +12,7 @@ import 'package:lung_diagnosis_app/features/diagnosis/history/presentation/pages
 import 'package:lung_diagnosis_app/features/home/presentation/pages/contact_doctor_screen.dart';
 import 'package:lung_diagnosis_app/features/home/presentation/pages/patient_access_screen.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/pages/add_medical_data_screen.dart';
+import 'package:lung_diagnosis_app/features/medical_data/presentation/pages/lung_risk_history_screen.dart';
 import 'package:lung_diagnosis_app/features/medical_data/presentation/pages/medical_data_screen.dart';
 import 'package:lung_diagnosis_app/features/notifications/presentation/pages/notifications_screen.dart';
 import 'package:lung_diagnosis_app/features/profile/presentation/pages/my_qr_code_screen.dart';
@@ -119,6 +120,15 @@ List<MenuActionItem> _doctorItems(BuildContext context) {
       ),
     ),
     MenuActionItem(
+      icon: Icons.analytics_rounded,
+      title: 'Risk history',
+      section: 'Diagnosis & Dashboard',
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LungRiskHistoryScreen()),
+      ),
+    ),
+    MenuActionItem(
       icon: Icons.medical_services_rounded,
       title: 'Doctor account stethoscope exams',
       section: 'Diagnosis & Dashboard',
@@ -150,7 +160,7 @@ List<MenuActionItem> _doctorItems(BuildContext context) {
     ),
     MenuActionItem(
       icon: Icons.playlist_add_check_circle_rounded,
-      title: 'Add / update medical data',
+      title: 'Update lung risk factors',
       section: 'Diagnosis & Dashboard',
       onTap: () => Navigator.push(
         context,
@@ -205,6 +215,15 @@ List<MenuActionItem> _patientItems(BuildContext context) {
       ),
     ),
     MenuActionItem(
+      icon: Icons.analytics_rounded,
+      title: 'Risk history',
+      section: 'Diagnosis & Dashboard',
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LungRiskHistoryScreen()),
+      ),
+    ),
+    MenuActionItem(
       icon: Icons.medical_services_rounded,
       title: AppStrings.lastStethoscope,
       section: 'Diagnosis & Dashboard',
@@ -213,6 +232,15 @@ List<MenuActionItem> _patientItems(BuildContext context) {
         MaterialPageRoute(
           builder: (_) => const DiagnosisHistoryScreen(kind: DiagnosisKind.stethoscope, isDoctor: false),
         ),
+      ),
+    ),
+    MenuActionItem(
+      icon: Icons.playlist_add_check_circle_rounded,
+      title: 'Update lung risk factors',
+      section: 'Diagnosis & Dashboard',
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddMedicalDataScreen()),
       ),
     ),
     MenuActionItem(

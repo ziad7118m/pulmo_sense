@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/core/widgets/app_image.dart';
 import 'package:lung_diagnosis_app/core/widgets/fullscreen_image_view.dart';
 
 class DiagnosisDetailsXrayHeader extends StatelessWidget {
@@ -134,7 +135,12 @@ class DiagnosisDetailsXrayHeader extends StatelessWidget {
                     child: isAsset
                         ? Image.asset(path, fit: BoxFit.contain)
                         : isNetwork
-                            ? Image.network(path, fit: BoxFit.contain)
+                            ? AppImage(
+                                path: path,
+                                fit: BoxFit.contain,
+                                loadingLabel: 'Loading X-ray...',
+                                errorLabel: 'X-ray unavailable',
+                              )
                             : Image.file(File(path), fit: BoxFit.contain),
                   ),
                 ),

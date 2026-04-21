@@ -14,6 +14,10 @@ class MedicalProfileMapper {
       createdByDoctorId: dto.createdByDoctorId,
       createdByDoctorName: dto.createdByDoctorName,
       updatedAt: dto.updatedAt,
+      backendResult: dto.backendResult,
+      backendLow: dto.backendLow,
+      backendMedium: dto.backendMedium,
+      backendHigh: dto.backendHigh,
     );
   }
 
@@ -26,6 +30,10 @@ class MedicalProfileMapper {
       createdByDoctorId: profile.createdByDoctorId,
       createdByDoctorName: profile.createdByDoctorName,
       updatedAt: profile.updatedAt,
+      backendResult: profile.backendResult,
+      backendLow: profile.backendLow,
+      backendMedium: profile.backendMedium,
+      backendHigh: profile.backendHigh,
     );
   }
 
@@ -38,6 +46,10 @@ class MedicalProfileMapper {
       createdByDoctorId: local.createdByDoctorId,
       createdByDoctorName: local.createdByDoctorName,
       updatedAt: local.updatedAt,
+      backendResult: local.backendResult,
+      backendLow: local.backendLow,
+      backendMedium: local.backendMedium,
+      backendHigh: local.backendHigh,
     );
   }
 
@@ -50,6 +62,10 @@ class MedicalProfileMapper {
       createdByDoctorId: profile.createdByDoctorId,
       createdByDoctorName: profile.createdByDoctorName,
       updatedAt: profile.updatedAt,
+      backendResult: profile.backendResult,
+      backendLow: profile.backendLow,
+      backendMedium: profile.backendMedium,
+      backendHigh: profile.backendHigh,
     );
   }
 }

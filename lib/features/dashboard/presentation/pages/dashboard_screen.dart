@@ -10,6 +10,7 @@ import 'package:lung_diagnosis_app/features/dashboard/presentation/widgets/dashb
 import 'package:lung_diagnosis_app/features/dashboard/presentation/widgets/dashboard_medical_profile_section.dart';
 import 'package:lung_diagnosis_app/features/dashboard/presentation/widgets/dashboard_section_header.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/domain/entities/diagnosis_item.dart';
+import 'package:lung_diagnosis_app/features/diagnosis/history/data/diagnosis_history_repository.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/presentation/widgets/risk_card_dashboard.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/record/presentation/pages/record_screen.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/stethoscope/presentation/pages/stethoscope_screen.dart';
@@ -38,11 +39,16 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   Future<MedicalProfileRecord?>? _medicalFuture;
   String? _medicalOwnerId;
+  String? _xraySyncedOwnerId;
+  bool _isSyncingXray = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _reloadMedicalIfNeeded(force: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncXrayIfNeeded(force: false);
+    });
   }
 
   @override
@@ -50,6 +56,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.patientView?.userId != widget.patientView?.userId) {
       _reloadMedicalIfNeeded(force: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _syncXrayIfNeeded(force: true);
+      });
     }
   }
 
@@ -66,8 +75,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _medicalFuture = context.read<DashboardController>().loadMedicalProfile(ownerId);
   }
 
+  Future<void> _syncXrayIfNeeded({required bool force}) async {
+    if (widget.patientView != null || _isSyncingXray) {
+      return;
+    }
+
+    final repository = context.read<DiagnosisHistoryRepository>();
+    if (!repository.supportsRemoteSync(DiagnosisKind.xray)) {
+      return;
+    }
+
+    final auth = context.read<AuthController>();
+    final ownerId = context.read<DashboardController>().resolveOwnerId(
+      currentUser: auth.currentUser,
+      patientView: widget.patientView,
+    );
+    final normalizedOwnerId = (ownerId ?? '').trim();
+    if (normalizedOwnerId.isEmpty) {
+      return;
+    }
+
+    if (!force && _xraySyncedOwnerId == normalizedOwnerId) {
+      return;
+    }
+
+    _isSyncingXray = true;
+    await repository.syncRemoteHistoryByKind(
+      DiagnosisKind.xray,
+      userId: normalizedOwnerId,
+    );
+    _isSyncingXray = false;
+    _xraySyncedOwnerId = normalizedOwnerId;
+
+    if (!mounted) return;
+    setState(() {});
+  }
+
   Future<void> _pushAndRefresh(Widget page) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    await _syncXrayIfNeeded(force: true);
     if (!mounted) return;
     setState(() {
       _reloadMedicalIfNeeded(force: true);
@@ -79,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       DiagnosisDetailsScreen(
         kind: kind,
         item: item,
-        allowDelete: widget.patientView == null,
+        allowDelete: widget.patientView == null && kind != DiagnosisKind.xray,
         ownerUserId: widget.patientView?.userId,
       ),
     );
@@ -109,6 +155,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       currentProfile: profile,
       patientView: widget.patientView,
     );
+
+    if (widget.patientView == null &&
+        viewData.ownerId != null &&
+        viewData.ownerId != _xraySyncedOwnerId &&
+        !_isSyncingXray) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _syncXrayIfNeeded(force: false);
+      });
+    }
 
     if (_medicalOwnerId != viewData.ownerId || _medicalFuture == null) {
       _medicalOwnerId = viewData.ownerId;
@@ -153,13 +208,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         isDoctor: viewData.ownerIsDoctor,
                         isReadOnly: viewData.isReadOnly,
                         updatedLabel: medical == null ? null : 'Updated ${_relativeDate(medical.updatedAt)}',
-                        onAddMedicalData: viewData.ownerIsDoctor && !viewData.isReadOnly
-                            ? () => _pushAndRefresh(
+                        onAddMedicalData: viewData.isReadOnly
+                            ? null
+                            : () => _pushAndRefresh(
                                   const AddMedicalDataScreen(
                                     initialTargetMode: MedicalTargetMode.me,
                                   ),
-                                )
-                            : null,
+                                ),
                         onOpenMedicalData: viewData.isReadOnly
                             ? null
                             : () => _pushAndRefresh(const MedicalDataScreen()),
@@ -202,8 +257,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: Icons.health_and_safety_rounded,
                         title: 'Risk',
                         subtitle: widget.patientView == null
-                            ? 'Your overall risk summary at a glance.'
-                            : 'Risk summary based on the patient medical factors saved so far.',
+                            ? 'Based on the latest lung risk analysis stored by the backend.'
+                            : 'Risk is only available when the viewed account exposes backend medical data.',
                       ),
                       const SizedBox(height: 12),
                       FutureBuilder<double>(
@@ -221,13 +276,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? 'Tip: record in a quiet place for the most accurate audio results.'
                             : 'Tip: ask the patient to keep previous reports available so the next review is easier.',
                         onOpenAbout: () => _pushAndRefresh(
-                          AboutDiseaseInfoScreen(
+                          const AboutDiseaseInfoScreen(
                             title: AppStrings.aboutCardTitle,
                             description: AppStrings.aboutCardDescription,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -237,6 +291,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
     );
+  }
+
+  String _relativeDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays >= 1) {
+      return '${difference.inDays}d ago';
+    }
+    if (difference.inHours >= 1) {
+      return '${difference.inHours}h ago';
+    }
+    if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes}m ago';
+    }
+    return 'just now';
   }
 }
 
@@ -253,49 +323,26 @@ class _ViewedPatientBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withOpacity(0.36),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(0.55)),
+        color: scheme.surfaceContainerHighest.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.75)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: scheme.primary.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(Icons.personal_injury_rounded, color: scheme.primary),
-          ),
+          Icon(Icons.supervised_user_circle_rounded, color: scheme.primary, size: 28),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Viewing patient mode',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${view.fullName} • National ID: ${view.nationalId}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+            child: Text(
+              'Viewing dashboard for ${view.fullName}. Backend medical data stays scoped to the signed-in account, so some sections may be unavailable here.',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-String _relativeDate(DateTime value) {
-  final difference = DateTime.now().difference(value);
-  if (difference.inDays >= 1) return '${difference.inDays}d ago';
-  if (difference.inHours >= 1) return '${difference.inHours}h ago';
-  if (difference.inMinutes >= 1) return '${difference.inMinutes}m ago';
-  return 'just now';
 }

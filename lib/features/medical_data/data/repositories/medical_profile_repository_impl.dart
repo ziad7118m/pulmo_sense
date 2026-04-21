@@ -1,45 +1,47 @@
-import 'package:lung_diagnosis_app/features/medical_data/data/datasources/medical_profile_local_data_source.dart';
+import 'package:lung_diagnosis_app/core/session/session_context.dart';
 import 'package:lung_diagnosis_app/features/medical_data/data/datasources/medical_profile_remote_data_source.dart';
+import 'package:lung_diagnosis_app/features/medical_data/data/in_memory_medical_profile_store.dart';
 import 'package:lung_diagnosis_app/features/medical_data/data/mappers/medical_profile_mapper.dart';
 import 'package:lung_diagnosis_app/features/medical_data/domain/entities/medical_profile_record.dart';
 import 'package:lung_diagnosis_app/features/medical_data/domain/repositories/medical_profile_repository.dart';
 
 class MedicalProfileRepositoryImpl implements MedicalProfileRepository {
-  final MedicalProfileLocalDataSource _local;
-  final MedicalProfileRemoteDataSource? _remote;
+  final MedicalProfileRemoteDataSource _remote;
+  final InMemoryMedicalProfileStore _cache;
 
-  const MedicalProfileRepositoryImpl({
-    required MedicalProfileLocalDataSource local,
-    MedicalProfileRemoteDataSource? remote,
-  }) : _local = local,
-       _remote = remote;
+  MedicalProfileRepositoryImpl({
+    required MedicalProfileRemoteDataSource remote,
+    required InMemoryMedicalProfileStore local,
+  })  : _remote = remote,
+        _cache = local;
+
+  bool _isCurrentUser(String ownerId) {
+    final normalized = ownerId.trim();
+    final current = (SessionContext.userId ?? '').trim();
+    return normalized.isNotEmpty && current.isNotEmpty && normalized == current;
+  }
 
   @override
   Future<MedicalProfileRecord?> getProfile(String ownerId) async {
     final normalized = ownerId.trim();
     if (normalized.isEmpty) return null;
+    if (!_isCurrentUser(normalized)) return null;
 
-    final remote = _remote;
-    if (remote != null) {
-      final remoteProfile = await remote.getProfile(normalized);
-      if (remoteProfile != null) {
-        final domain = MedicalProfileMapper.fromDto(remoteProfile);
-        await _local.saveProfile(MedicalProfileMapper.toLocal(domain));
-        return domain;
-      }
+    final remoteProfile = await _remote.getProfile(normalized);
+    if (remoteProfile == null) {
+      await _cache.delete(normalized);
+      return null;
     }
 
-    final localProfile = await _local.getProfile(normalized);
-    return localProfile == null ? null : MedicalProfileMapper.fromLocal(localProfile);
+    final mapped = MedicalProfileMapper.fromDto(remoteProfile);
+    await _cache.upsert(mapped);
+    return mapped;
   }
 
   @override
   Future<void> saveProfile(MedicalProfileRecord profile) async {
-    final remote = _remote;
-    if (remote != null) {
-      await remote.saveProfile(MedicalProfileMapper.toDto(profile));
-    }
-    await _local.saveProfile(MedicalProfileMapper.toLocal(profile));
+    await _remote.saveProfile(MedicalProfileMapper.toDto(profile));
+    await _cache.upsert(profile);
   }
 
   @override
@@ -47,10 +49,7 @@ class MedicalProfileRepositoryImpl implements MedicalProfileRepository {
     final normalized = ownerId.trim();
     if (normalized.isEmpty) return;
 
-    final remote = _remote;
-    if (remote != null) {
-      await remote.deleteProfile(normalized);
-    }
-    await _local.deleteProfile(normalized);
+    await _remote.deleteProfile(normalized);
+    await _cache.delete(normalized);
   }
 }

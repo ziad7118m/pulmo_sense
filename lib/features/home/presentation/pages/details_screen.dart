@@ -89,7 +89,10 @@ class _DiagnosisDetailsScreenState extends State<DiagnosisDetailsScreen> {
           ),
           if (!widget.allowDelete) ...[
             const SizedBox(height: 16),
-            _ReadOnlyNoticeCard(kind: kind),
+            _ReadOnlyNoticeCard(
+              kind: kind,
+              ownerUserId: widget.ownerUserId,
+            ),
           ],
           const SizedBox(height: 16),
           DiagnosisDetailsActions(
@@ -130,13 +133,35 @@ class _DiagnosisDetailsScreenState extends State<DiagnosisDetailsScreen> {
 
 class _ReadOnlyNoticeCard extends StatelessWidget {
   final DiagnosisKind kind;
+  final String? ownerUserId;
 
-  const _ReadOnlyNoticeCard({required this.kind});
+  const _ReadOnlyNoticeCard({
+    required this.kind,
+    this.ownerUserId,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final label = kind.isImaging ? 'X-ray' : 'audio';
+    final normalizedOwnerUserId = (ownerUserId ?? '').trim();
+    final bool isPatientOwnedView = normalizedOwnerUserId.isNotEmpty;
+    final String title;
+    final String message;
+
+    if (kind.isImaging && !isPatientOwnedView) {
+      title = 'API history item';
+      message =
+          'This X-ray result is loaded from the API history, so delete is disabled here because there is no backend delete endpoint yet.';
+    } else if (kind.isImaging && isPatientOwnedView) {
+      title = 'Read-only patient result';
+      message =
+          'You are viewing this X-ray from a patient account, so edit and delete actions are hidden here.';
+    } else {
+      final label = kind.isImaging ? 'X-ray' : 'audio';
+      title = 'Read-only view';
+      message =
+          'This $label result was opened from Patient Dashboard, so edit and delete actions are hidden here.';
+    }
 
     return Container(
       width: double.infinity,
@@ -168,7 +193,7 @@ class _ReadOnlyNoticeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Read-only view',
+                  title,
                   style: TextStyle(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w900,
@@ -177,7 +202,7 @@ class _ReadOnlyNoticeCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'This $label result was opened from Patient Dashboard, so edit and delete actions are hidden here.',
+                  message,
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     height: 1.35,

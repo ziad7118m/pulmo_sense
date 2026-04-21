@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:lung_diagnosis_app/core/widgets/app_image.dart';
 import 'package:lung_diagnosis_app/core/widgets/fullscreen_image_view.dart';
 
 class ArticleGallery extends StatelessWidget {
@@ -18,6 +19,9 @@ class ArticleGallery extends StatelessWidget {
   ImageProvider<Object>? _providerFor(String path) {
     final trimmed = path.trim();
     if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
     if (trimmed.startsWith('assets/')) {
       return AssetImage(trimmed);
     }
@@ -100,9 +104,10 @@ class ArticleGallery extends StatelessWidget {
                         color: scheme.surfaceVariant,
                         child: InkWell(
                           onTap: () => _openImage(context, path, i),
-                          child: Ink.image(
-                            image: provider,
+                          child: AppImage(
+                            path: path,
                             fit: BoxFit.cover,
+                            errorLabel: '',
                           ),
                         ),
                       );
@@ -203,9 +208,10 @@ class ArticleGallery extends StatelessWidget {
                                 color: scheme.primary,
                               ),
                             )
-                          : Image(
-                              image: provider,
+                          : AppImage(
+                              path: images[i],
                               fit: BoxFit.cover,
+                              errorLabel: '',
                             ),
                     ),
                   ),

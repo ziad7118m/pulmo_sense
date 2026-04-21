@@ -7,6 +7,7 @@ class DiagnosisMappers {
       riskLevel: dto.riskLevel,
       confidence: dto.confidence,
       recommendation: dto.recommendation,
+      classProbabilities: dto.classProbabilities,
     );
   }
 }

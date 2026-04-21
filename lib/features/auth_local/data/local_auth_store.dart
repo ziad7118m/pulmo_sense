@@ -1,109 +1,86 @@
-import 'package:hive/hive.dart';
 import 'package:lung_diagnosis_app/features/auth_local/data/local_auth_models.dart';
 
 class LocalAuthStore {
   static const String usersBoxName = 'local_users';
   static const String sessionBoxName = 'local_session';
-  static const String _kSession = 'session';
-  static const String _kRememberedAccounts = 'remembered_accounts';
 
-  Future<Box> _usersBox() => Hive.openBox(usersBoxName);
-  Future<Box> _sessionBox() => Hive.openBox(sessionBoxName);
+  final Map<String, LocalUser> _users = <String, LocalUser>{};
+  LocalSession? _session;
+  final List<Map<String, String>> _rememberedAccounts = <Map<String, String>>[];
 
   Future<void> upsertUser(LocalUser user) async {
-    final box = await _usersBox();
-    await box.put(user.id, user.toMap());
+    _users[user.id] = user;
   }
 
   Future<void> deleteUser(String userId) async {
-    final box = await _usersBox();
-    await box.delete(userId);
+    _users.remove(userId);
   }
 
   Future<List<LocalUser>> getAllUsers() async {
-    final box = await _usersBox();
-    return box.values
-        .whereType<Map>()
-        .map((m) => LocalUser.fromMap(m))
-        .toList();
+    return _users.values.toList(growable: false);
   }
 
   Future<LocalUser?> getUserById(String id) async {
-    final box = await _usersBox();
-    final v = box.get(id);
-    if (v is Map) return LocalUser.fromMap(v);
-    return null;
+    return _users[id];
   }
 
   Future<LocalUser?> findByEmail(String emailLower) async {
-    final all = await getAllUsers();
-    for (final u in all) {
-      if (u.email.toLowerCase() == emailLower) return u;
+    final normalized = emailLower.trim().toLowerCase();
+    for (final user in _users.values) {
+      if (user.email.trim().toLowerCase() == normalized) {
+        return user;
+      }
     }
     return null;
   }
 
   Future<void> setSession(LocalSession? session) async {
-    final box = await _sessionBox();
-    if (session == null) {
-      await box.delete(_kSession);
-    } else {
-      await box.put(_kSession, session.toMap());
-    }
+    _session = session;
   }
 
   Future<LocalSession?> getSession() async {
-    final box = await _sessionBox();
-    return LocalSession.fromMap(box.get(_kSession));
+    return _session;
   }
 
-  /// Stores only accounts that succeeded to login.
-  ///
-  /// We keep a small list to power the email dropdown on the login page.
-  Future<void> rememberAccount({required String email, required String password}) async {
-    final box = await _sessionBox();
-    final current = (box.get(_kRememberedAccounts) as List?)?.whereType<Map>().toList() ?? <Map>[];
+  Future<void> rememberAccount({
+    required String email,
+    required String password,
+  }) async {
+    final normalized = email.trim().toLowerCase();
+    _rememberedAccounts.removeWhere(
+      (entry) => (entry['email'] ?? '').trim().toLowerCase() == normalized,
+    );
 
-    // Remove any existing record for the same email (case-insensitive)
-    current.removeWhere((m) => (m['email'] ?? '').toString().toLowerCase() == email.toLowerCase());
-
-    current.insert(0, {
+    _rememberedAccounts.insert(0, <String, String>{
       'email': email,
       'password': password,
-      'lastUsedAt': DateTime.now().toIso8601String(),
     });
 
-    // Keep the latest 5.
-    while (current.length > 5) {
-      current.removeLast();
+    while (_rememberedAccounts.length > 5) {
+      _rememberedAccounts.removeLast();
     }
-
-    await box.put(_kRememberedAccounts, current);
   }
 
   Future<List<Map<String, String>>> getRememberedAccounts() async {
-    final box = await _sessionBox();
-    final raw = (box.get(_kRememberedAccounts) as List?)?.whereType<Map>().toList() ?? <Map>[];
-    return raw
-        .map((m) => {
-      'email': (m['email'] ?? '').toString(),
-      'password': (m['password'] ?? '').toString(),
-    })
-        .where((m) => m['email']!.trim().isNotEmpty)
-        .toList();
+    return _rememberedAccounts
+        .map((entry) => <String, String>{
+              'email': entry['email'] ?? '',
+              'password': entry['password'] ?? '',
+            })
+        .where((entry) => entry['email']!.trim().isNotEmpty)
+        .toList(growable: false);
   }
 
   Future<void> forgetRememberedAccount(String email) async {
-    final box = await _sessionBox();
-    final current = (box.get(_kRememberedAccounts) as List?)?.whereType<Map>().toList() ?? <Map>[];
-    current.removeWhere((m) => (m['email'] ?? '').toString().toLowerCase() == email.toLowerCase());
-    await box.put(_kRememberedAccounts, current);
+    final normalized = email.trim().toLowerCase();
+    _rememberedAccounts.removeWhere(
+      (entry) => (entry['email'] ?? '').trim().toLowerCase() == normalized,
+    );
   }
 
   Future<void> clearAll() async {
-    final u = await _usersBox();
-    final s = await _sessionBox();
-    await u.clear();
-    await s.clear();
+    _users.clear();
+    _session = null;
+    _rememberedAccounts.clear();
   }
 }

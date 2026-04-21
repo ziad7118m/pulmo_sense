@@ -13,6 +13,8 @@ class ArticleComposeForm extends StatelessWidget {
   final TextEditingController contentController;
   final List<File> images;
   final int maxImages;
+  final bool isEditing;
+  final int existingImageCount;
   final VoidCallback onAddImages;
   final ValueChanged<int> onRemoveImageAt;
 
@@ -24,6 +26,8 @@ class ArticleComposeForm extends StatelessWidget {
     required this.contentController,
     required this.images,
     required this.maxImages,
+    required this.isEditing,
+    required this.existingImageCount,
     required this.onAddImages,
     required this.onRemoveImageAt,
   });
@@ -41,6 +45,28 @@ class ArticleComposeForm extends StatelessWidget {
           onAddImages: onAddImages,
         ),
         const SizedBox(height: 18),
+        if (isEditing)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer.withOpacity(0.55),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: Text(
+              existingImageCount > 0
+                  ? 'Editing article. Keep images empty to preserve current backend images, or add new ones to replace them.'
+                  : 'Editing article. Update the title or content, and optionally add new images.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
+          ),
+        if (isEditing) const SizedBox(height: 18),
         Text(
           'Article details',
           style: TextStyle(
@@ -62,7 +88,7 @@ class ArticleComposeForm extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          'Image preview',
+          isEditing ? 'New image preview' : 'Image preview',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w800,

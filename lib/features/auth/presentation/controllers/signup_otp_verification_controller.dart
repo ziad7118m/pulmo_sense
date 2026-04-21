@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lung_diagnosis_app/features/auth/domain/repositories/auth_repository.dart';
 

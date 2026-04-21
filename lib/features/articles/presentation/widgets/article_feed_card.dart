@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lung_diagnosis_app/features/articles/domain/entities/article.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_feed_card_controller.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/helpers/article_media_resolver.dart';
+import 'package:lung_diagnosis_app/features/articles/presentation/pages/add_article_screen.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/pages/article_detail_screen.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/widgets/article_card.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
@@ -35,6 +36,16 @@ class ArticleFeedCard extends StatelessWidget {
     }
   }
 
+  Future<void> _editArticle(BuildContext context) async {
+    final updated = await Navigator.push<Article>(
+      context,
+      MaterialPageRoute(builder: (_) => AddArticleScreen(initialArticle: article)),
+    );
+    if (updated != null) {
+      await onArticleMutated?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -55,6 +66,7 @@ class ArticleFeedCard extends StatelessWidget {
       articleImage: viewData.articleImage,
       isAdmin: viewData.isAdmin,
       showOwnerDelete: showOwnerDelete,
+      onEdit: showOwnerDelete ? () => _editArticle(context) : null,
       onDelete: onDeleteRequested == null ? null : () => onDeleteRequested!(article),
       showHiddenBadge: showHiddenBadge,
       isHiddenByAdmin: article.isHiddenByAdmin,

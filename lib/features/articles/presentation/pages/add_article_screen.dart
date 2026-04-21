@@ -6,6 +6,7 @@ import 'package:lung_diagnosis_app/core/constants/app_strings.dart';
 import 'package:lung_diagnosis_app/core/widgets/app_bar.dart';
 import 'package:lung_diagnosis_app/core/widgets/app_confirmation_dialog.dart';
 import 'package:lung_diagnosis_app/core/widgets/app_top_message.dart';
+import 'package:lung_diagnosis_app/features/articles/domain/entities/article.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/add_article_controller.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_controller.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/models/add_article_view_data.dart';
@@ -21,7 +22,9 @@ import 'package:provider/provider.dart';
 import 'my_articles_screen.dart';
 
 class AddArticleScreen extends StatefulWidget {
-  const AddArticleScreen({super.key});
+  final Article? initialArticle;
+
+  const AddArticleScreen({super.key, this.initialArticle});
 
   @override
   State<AddArticleScreen> createState() => _AddArticleScreenState();
@@ -38,6 +41,7 @@ class _AddArticleScreenState extends State<AddArticleScreen> {
       articleController: context.read<ArticleController>(),
       authController: context.read<AuthController>(),
       profileController: context.read<ProfileController>(),
+      initialArticle: widget.initialArticle,
     );
   }
 
@@ -103,19 +107,31 @@ class _AddArticleScreenState extends State<AddArticleScreen> {
       return;
     }
 
+    final isEditing = _controller.isEditing;
     final ok = await AppConfirmationDialog.show(
       context,
-      title: AppStrings.confirmPost,
-      message: AppStrings.confirmationAsk,
-      confirmLabel: AppStrings.ok,
+      title: isEditing ? 'Update article?' : AppStrings.confirmPost,
+      message: isEditing
+          ? 'Your changes will be sent to the backend.'
+          : AppStrings.confirmationAsk,
+      confirmLabel: isEditing ? 'Update' : AppStrings.ok,
       cancelLabel: AppStrings.cancel,
-      icon: Icons.article_outlined,
+      icon: isEditing ? Icons.edit_note_rounded : Icons.article_outlined,
     );
 
     if (!ok) return;
 
-    final posted = await _controller.post();
-    if (!mounted || posted) return;
+    final article = await _controller.submit();
+    if (!mounted) return;
+
+    if (article != null && _controller.isEditing) {
+      Navigator.pop(context, article);
+      return;
+    }
+
+    if (article != null) {
+      return;
+    }
 
     final errorMessage = _controller.errorMessage;
     if ((errorMessage ?? '').trim().isNotEmpty) {
@@ -133,7 +149,7 @@ class _AddArticleScreenState extends State<AddArticleScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return CustomAppBar(
-      title: AppStrings.addArticle,
+      title: _controller.isEditing ? 'Edit article' : AppStrings.addArticle,
       backgroundColor: Colors.transparent,
       elevation: 0,
     );
@@ -169,6 +185,8 @@ class _AddArticleScreenState extends State<AddArticleScreen> {
         contentController: _controller.contentController,
         images: data.images,
         maxImages: data.maxImages,
+        isEditing: data.isEditing,
+        existingImageCount: data.existingImageCount,
         onAddImages: _openImagePickerSheet,
         onRemoveImageAt: _controller.removeImageAt,
       ),
@@ -182,7 +200,7 @@ class _AddArticleScreenState extends State<AddArticleScreen> {
       builder: (context, _) {
         final data = _controller.viewData;
 
-        if (data.isPosted) return _buildSuccessScaffold();
+        if (data.isPosted && !data.isEditing) return _buildSuccessScaffold();
         if (!data.isDoctor) return _buildDoctorOnlyMessage();
 
         return Scaffold(
@@ -193,7 +211,7 @@ class _AddArticleScreenState extends State<AddArticleScreen> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                     child: CustomButton(
-                      text: AppStrings.post,
+                      text: data.isEditing ? 'Update' : AppStrings.post,
                       height: 50,
                       width: double.infinity,
                       onPressed: _showConfirmDialog,

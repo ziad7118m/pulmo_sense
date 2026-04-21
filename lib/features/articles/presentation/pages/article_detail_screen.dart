@@ -7,6 +7,7 @@ import 'package:lung_diagnosis_app/core/widgets/empty_state_card.dart';
 import 'package:lung_diagnosis_app/features/articles/domain/entities/article.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_controller.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/controllers/article_detail_controller.dart';
+import 'package:lung_diagnosis_app/features/articles/presentation/pages/add_article_screen.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/widgets/article_detail_actions.dart';
 import 'package:lung_diagnosis_app/features/articles/presentation/widgets/article_detail_content.dart';
 import 'package:lung_diagnosis_app/features/auth/presentation/controllers/auth_controller.dart';
@@ -58,6 +59,19 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
+  Future<void> _editArticle() async {
+    final updated = await Navigator.push<Article>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddArticleScreen(initialArticle: _controller.article),
+      ),
+    );
+
+    if (!mounted || updated == null) return;
+    _controller.replaceArticle(updated);
+    AppTopMessage.success(context, 'Article updated');
+  }
+
   Future<void> _toggleFavourite() async {
     try {
       final isFavorite = await _controller.toggleFavourite();
@@ -71,7 +85,6 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
       AppTopMessage.error(context, 'Could not update favourites right now.');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +126,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 isDeleting: data.isDeleting,
                 isTogglingFavourite: data.isTogglingFavourite,
                 onToggleFavourite: _toggleFavourite,
+                onEdit: data.isOwner ? _editArticle : null,
                 onDelete: _deleteArticle,
               ),
             ],

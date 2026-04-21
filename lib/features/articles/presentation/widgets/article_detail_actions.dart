@@ -8,6 +8,7 @@ class ArticleDetailActions extends StatelessWidget {
   final bool isDeleting;
   final bool isTogglingFavourite;
   final VoidCallback onToggleFavourite;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const ArticleDetailActions({
@@ -18,12 +19,15 @@ class ArticleDetailActions extends StatelessWidget {
     required this.isDeleting,
     required this.isTogglingFavourite,
     required this.onToggleFavourite,
+    this.onEdit,
     this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final canShowOwnerMenu = isOwner && (onEdit != null || onDelete != null);
+    final canDelete = (isOwner || isAdmin) && onDelete != null;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -46,24 +50,37 @@ class ArticleDetailActions extends StatelessWidget {
             onPressed: isTogglingFavourite || isDeleting ? null : onToggleFavourite,
           ),
         ],
-        if (!isAdmin && isOwner && onDelete != null)
+        if (canShowOwnerMenu || canDelete)
           PopupMenuButton<String>(
-            tooltip: isDeleting ? 'Deleting article' : 'More',
+            tooltip: isDeleting ? 'Updating article' : 'More',
             enabled: !isDeleting && !isTogglingFavourite,
             onSelected: (value) {
+              if (value == 'edit') onEdit?.call();
               if (value == 'delete') onDelete?.call();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline_rounded),
-                    SizedBox(width: 10),
-                    Text('Delete'),
-                  ],
+            itemBuilder: (_) => [
+              if (canShowOwnerMenu && onEdit != null)
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined),
+                      SizedBox(width: 10),
+                      Text('Edit'),
+                    ],
+                  ),
                 ),
-              ),
+              if (canDelete)
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded),
+                      SizedBox(width: 10),
+                      Text('Delete'),
+                    ],
+                  ),
+                ),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),

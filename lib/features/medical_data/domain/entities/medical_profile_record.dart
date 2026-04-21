@@ -8,6 +8,10 @@ class MedicalProfileRecord {
   final String createdByDoctorId;
   final String createdByDoctorName;
   final DateTime updatedAt;
+  final String? backendResult;
+  final double? backendLow;
+  final double? backendMedium;
+  final double? backendHigh;
 
   const MedicalProfileRecord({
     required this.ownerId,
@@ -17,6 +21,10 @@ class MedicalProfileRecord {
     required this.createdByDoctorId,
     required this.createdByDoctorName,
     required this.updatedAt,
+    this.backendResult,
+    this.backendLow,
+    this.backendMedium,
+    this.backendHigh,
   });
 
   MedicalProfileRecord copyWith({
@@ -27,6 +35,10 @@ class MedicalProfileRecord {
     String? createdByDoctorId,
     String? createdByDoctorName,
     DateTime? updatedAt,
+    String? backendResult,
+    double? backendLow,
+    double? backendMedium,
+    double? backendHigh,
   }) {
     return MedicalProfileRecord(
       ownerId: ownerId ?? this.ownerId,
@@ -36,6 +48,10 @@ class MedicalProfileRecord {
       createdByDoctorId: createdByDoctorId ?? this.createdByDoctorId,
       createdByDoctorName: createdByDoctorName ?? this.createdByDoctorName,
       updatedAt: updatedAt ?? this.updatedAt,
+      backendResult: backendResult ?? this.backendResult,
+      backendLow: backendLow ?? this.backendLow,
+      backendMedium: backendMedium ?? this.backendMedium,
+      backendHigh: backendHigh ?? this.backendHigh,
     );
   }
 

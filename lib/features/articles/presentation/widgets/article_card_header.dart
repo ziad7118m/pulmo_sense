@@ -8,6 +8,7 @@ class ArticleCardHeader extends StatelessWidget {
   final bool showHiddenBadge;
   final bool isHiddenByAdmin;
   final bool showOwnerDelete;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const ArticleCardHeader({
@@ -17,18 +18,30 @@ class ArticleCardHeader extends StatelessWidget {
     required this.showHiddenBadge,
     required this.isHiddenByAdmin,
     required this.showOwnerDelete,
+    this.onEdit,
     this.onDelete,
   });
 
-  bool _hasFile(String path) {
-    return path.trim().isNotEmpty &&
-        (path.startsWith('assets/') || File(path).existsSync());
+  ImageProvider<Object>? _imageProvider(String path) {
+    final normalized = path.trim();
+    if (normalized.isEmpty) return null;
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      return NetworkImage(normalized);
+    }
+    if (normalized.startsWith('assets/')) {
+      return AssetImage(normalized);
+    }
+    if (File(normalized).existsSync()) {
+      return FileImage(File(normalized));
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final hasDoctorImage = _hasFile(doctorImage);
+    final provider = _imageProvider(doctorImage);
+    final canShowOwnerMenu = showOwnerDelete && (onEdit != null || onDelete != null);
 
     return Row(
       children: [
@@ -40,19 +53,14 @@ class ArticleCardHeader extends StatelessWidget {
           child: CircleAvatar(
             radius: 18,
             backgroundColor: scheme.primaryContainer,
-            backgroundImage: hasDoctorImage
-                ? (doctorImage.startsWith('assets/')
-                        ? AssetImage(doctorImage)
-                        : FileImage(File(doctorImage))
-                    as ImageProvider)
-                : null,
-            child: hasDoctorImage
-                ? null
-                : Icon(
+            backgroundImage: provider,
+            child: provider == null
+                ? Icon(
                     Icons.person,
                     size: 18,
                     color: scheme.primary,
-                  ),
+                  )
+                : null,
           ),
         ),
         const SizedBox(width: 10),
@@ -97,25 +105,40 @@ class ArticleCardHeader extends StatelessWidget {
               ),
             ),
           ),
-        if (showOwnerDelete)
+        if (canShowOwnerMenu)
           PopupMenuButton<String>(
             tooltip: 'More',
             onSelected: (value) {
-              if (value == 'delete' && onDelete != null) {
-                onDelete!();
+              if (value == 'edit') {
+                onEdit?.call();
+              }
+              if (value == 'delete') {
+                onDelete?.call();
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline_rounded),
-                    SizedBox(width: 10),
-                    Text('Delete'),
-                  ],
+            itemBuilder: (_) => [
+              if (onEdit != null)
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined),
+                      SizedBox(width: 10),
+                      Text('Edit'),
+                    ],
+                  ),
                 ),
-              ),
+              if (onDelete != null)
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded),
+                      SizedBox(width: 10),
+                      Text('Delete'),
+                    ],
+                  ),
+                ),
             ],
             child: Container(
               margin: const EdgeInsets.only(left: 8),

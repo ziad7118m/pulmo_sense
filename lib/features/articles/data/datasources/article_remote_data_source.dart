@@ -10,6 +10,7 @@ import 'package:lung_diagnosis_app/features/articles/data/dtos/article_upsert_re
 
 class ArticleRemoteDataSource {
   final ApiClient _apiClient;
+  Set<String>? _cachedFavouriteIds;
 
   ArticleRemoteDataSource(this._apiClient);
 
@@ -44,8 +45,13 @@ class ArticleRemoteDataSource {
     return mine();
   }
 
-  Future<List<ArticleDto>> favourites() {
-    return _getArticleList(Endpoints.articleFavourites);
+  Future<List<ArticleDto>> favourites() async {
+    final items = await _getFavouriteArticles();
+    _cachedFavouriteIds = items
+        .map((article) => article.id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    return items;
   }
 
   Future<List<ArticleDto>> saved() {
@@ -81,7 +87,13 @@ class ArticleRemoteDataSource {
       final response = normalizedId.isEmpty
           ? await _apiClient.raw.post<dynamic>(path, data: formData)
           : await _apiClient.raw.put<dynamic>(path, data: formData);
-      return ArticleDto.fromJson(_extractArticleMap(response.data));
+
+      if (normalizedId.isEmpty) {
+        return ArticleDto.fromJson(_extractArticleMap(response.data));
+      }
+
+      final updatedId = (_extractUpdatedPostId(response.data)?.toString() ?? normalizedId).trim();
+      return await getById(updatedId);
     } catch (_) {
       throw StateError('Failed to persist remote article.');
     }
@@ -91,6 +103,7 @@ class ArticleRemoteDataSource {
     final normalized = articleId.trim();
     if (normalized.isEmpty) return;
     await _apiClient.delete<dynamic>(_articlePath(normalized));
+    _cachedFavouriteIds?.remove(normalized);
   }
 
   Future<ArticleDto?> setAdminHidden(String articleId, bool hidden) async {
@@ -101,8 +114,8 @@ class ArticleRemoteDataSource {
     final normalized = articleId.trim();
     if (normalized.isEmpty) return null;
 
-    final favorites = await favourites();
-    final isFavourite = favorites.any((article) => article.id == normalized);
+    final favoriteIds = await _getFavouriteIds();
+    final isFavourite = favoriteIds.contains(normalized);
     return ArticleReactionStatusDto(
       isFavourite: isFavourite,
       isSaved: isFavourite,
@@ -111,13 +124,14 @@ class ArticleRemoteDataSource {
   }
 
   Future<ArticleReactionStatusDto?> toggleFavourite(String articleId) async {
-    final postId = int.tryParse(articleId.trim());
+    final normalized = articleId.trim();
+    final postId = int.tryParse(normalized);
     if (postId == null) {
       throw StateError('Invalid article id for favorites endpoint.');
     }
 
-    final current = await reactionStatus(articleId);
-    final alreadyFavourite = current?.isFavourite ?? false;
+    final favoriteIds = await _getFavouriteIds();
+    final alreadyFavourite = favoriteIds.contains(normalized);
 
     final result = alreadyFavourite
         ? await _apiClient.delete<dynamic>(
@@ -130,10 +144,21 @@ class ArticleRemoteDataSource {
           );
 
     if (result is FailureResult<dynamic>) {
-      throw StateError('Failed to toggle remote article favourite state.');
+      throw StateError(result.failure.message);
     }
 
-    return ArticleReactionStatusDto(isFavourite: !alreadyFavourite, isSaved: !alreadyFavourite);
+    if (alreadyFavourite) {
+      favoriteIds.remove(normalized);
+    } else {
+      favoriteIds.add(normalized);
+    }
+    _cachedFavouriteIds = favoriteIds;
+
+    return ArticleReactionStatusDto(
+      isFavourite: !alreadyFavourite,
+      isSaved: !alreadyFavourite,
+      favouriteCount: null,
+    );
   }
 
   Future<ArticleReactionStatusDto?> toggleSaved(String articleId) {
@@ -156,7 +181,48 @@ class ArticleRemoteDataSource {
     if (result is Success<List<ArticleDto>>) {
       return result.value;
     }
+
+    if (result is FailureResult<List<ArticleDto>>) {
+      throw StateError(result.failure.message);
+    }
     throw StateError('Failed to fetch remote articles.');
+  }
+
+  Future<List<ArticleDto>> _getFavouriteArticles() async {
+    try {
+      final response = await _apiClient.raw.get<dynamic>(
+        Endpoints.articleFavourites,
+        options: Options(validateStatus: (status) => status != null && status >= 200 && status < 500),
+      );
+
+      if (response.statusCode == 404) {
+        return const <ArticleDto>[];
+      }
+
+      final list = _extractArticleList(response.data);
+      return list.map(ArticleDto.fromJson).toList(growable: false);
+    } on DioException catch (error) {
+      final status = error.response?.statusCode;
+      if (status == 404) {
+        return const <ArticleDto>[];
+      }
+      throw StateError('Failed to fetch favorite articles.');
+    }
+  }
+
+  Future<Set<String>> _getFavouriteIds() async {
+    final cached = _cachedFavouriteIds;
+    if (cached != null) {
+      return Set<String>.from(cached);
+    }
+
+    final items = await _getFavouriteArticles();
+    final ids = items
+        .map((article) => article.id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    _cachedFavouriteIds = ids;
+    return ids;
   }
 
   Future<FormData> _buildPostFormData(ArticleUpsertRequestDto request) async {
@@ -179,6 +245,20 @@ class ArticleRemoteDataSource {
     }
 
     return FormData.fromMap(map);
+  }
+
+  int? _extractUpdatedPostId(dynamic data) {
+    if (data is int) return data;
+    if (data is num) return data.toInt();
+    if (data is String) return int.tryParse(data.trim());
+
+    final map = _asMap(data);
+    if (map == null) return null;
+
+    final dynamic candidate = map['id'] ?? map['postId'] ?? map['result'] ?? map['data'];
+    if (candidate is int) return candidate;
+    if (candidate is num) return candidate.toInt();
+    return int.tryParse(candidate?.toString().trim() ?? '');
   }
 
   Map<String, dynamic> _extractArticleMap(dynamic data) {
