@@ -21,16 +21,18 @@ class ProfileController extends ChangeNotifier {
   bool get hasProfile => profile != null;
 
   Future<void> setUserId(String? userId) async {
-    if (_userId == userId) return;
-    _userId = userId;
+    final normalizedId = userId?.trim();
+    if (_userId == normalizedId) return;
+    _userId = normalizedId;
 
-    if (_userId == null || _userId!.trim().isEmpty) {
+    if (_userId == null || _userId!.isEmpty) {
       profile = null;
+      isLoading = false;
       notifyListeners();
       return;
     }
 
-    await loadProfile(_userId!, createIfMissing: false);
+    await loadProfile(_userId!, createIfMissing: true);
   }
 
   Future<UserProfile?> loadProfile(
@@ -44,9 +46,14 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
 
     _userId = normalizedId;
-    profile = createIfMissing
-        ? await _repository.getOrCreate(normalizedId)
-        : await _repository.getProfile(normalizedId);
+    try {
+      profile = createIfMissing
+          ? await _repository.getOrCreate(normalizedId)
+          : await _repository.getProfile(normalizedId);
+      profile ??= UserProfile.empty(normalizedId);
+    } catch (_) {
+      profile = UserProfile.empty(normalizedId);
+    }
 
     isLoading = false;
     notifyListeners();
@@ -96,7 +103,7 @@ class ProfileController extends ChangeNotifier {
     final resolvedProfile = hasMatchingProfile
         ? (profile ?? UserProfile.empty(user.id))
         : UserProfile.empty(user.id);
-    final busy = isLoading || !hasMatchingProfile;
+    final busy = isLoading;
 
     return ProfileScreenViewData(
       user: user,

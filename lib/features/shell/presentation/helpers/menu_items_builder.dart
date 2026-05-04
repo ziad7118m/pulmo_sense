@@ -235,15 +235,6 @@ List<MenuActionItem> _patientItems(BuildContext context) {
       ),
     ),
     MenuActionItem(
-      icon: Icons.playlist_add_check_circle_rounded,
-      title: 'Update lung risk factors',
-      section: 'Diagnosis & Dashboard',
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AddMedicalDataScreen()),
-      ),
-    ),
-    MenuActionItem(
       icon: Icons.medical_information_rounded,
       title: 'My medical data',
       section: 'Diagnosis & Dashboard',

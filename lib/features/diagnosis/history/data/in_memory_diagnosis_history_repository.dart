@@ -1,14 +1,17 @@
 import 'package:lung_diagnosis_app/core/result/result.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/domain/diagnosis_result.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/domain/entities/diagnosis_item.dart';
+import 'package:lung_diagnosis_app/features/diagnosis/history/data/datasources/audio_history_remote_data_source.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/data/datasources/xray_history_remote_data_source.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/data/diagnosis_history_repository.dart';
+import 'package:lung_diagnosis_app/features/diagnosis/history/data/dtos/audio_history_entry_dto.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/data/dtos/xray_history_entry_dto.dart';
 import 'package:lung_diagnosis_app/shared/domain/enums/diagnosis_kind.dart';
 
 class InMemoryDiagnosisHistoryRepository extends DiagnosisHistoryRepository {
   final String? Function() _currentUserId;
   final XrayHistoryRemoteDataSource? _xrayRemoteDataSource;
+  final AudioHistoryRemoteDataSource? _audioRemoteDataSource;
 
   final Map<String, List<DiagnosisItem>> _itemsByBucket =
       <String, List<DiagnosisItem>>{};
@@ -20,12 +23,17 @@ class InMemoryDiagnosisHistoryRepository extends DiagnosisHistoryRepository {
   InMemoryDiagnosisHistoryRepository({
     required String? Function() currentUserId,
     XrayHistoryRemoteDataSource? xrayRemoteDataSource,
+    AudioHistoryRemoteDataSource? audioRemoteDataSource,
   }) : _currentUserId = currentUserId,
-       _xrayRemoteDataSource = xrayRemoteDataSource;
+       _xrayRemoteDataSource = xrayRemoteDataSource,
+       _audioRemoteDataSource = audioRemoteDataSource;
 
   @override
   bool supportsRemoteSync(DiagnosisKind kind) {
-    return kind == DiagnosisKind.xray && _xrayRemoteDataSource != null;
+    return switch (kind) {
+      DiagnosisKind.record || DiagnosisKind.stethoscope => _audioRemoteDataSource != null,
+      DiagnosisKind.xray => _xrayRemoteDataSource != null,
+    };
   }
 
   @override
@@ -43,33 +51,81 @@ class InMemoryDiagnosisHistoryRepository extends DiagnosisHistoryRepository {
       return getHistoryByKind(kind, userId: userId, ownerUserId: ownerUserId);
     }
 
-    final result = await _xrayRemoteDataSource!.fetchHistory();
-    if (result is! Success<List<XrayHistoryEntryDto>>) {
+    if (kind == DiagnosisKind.xray) {
+      final result = await _xrayRemoteDataSource!.fetchHistory();
+      if (result is! Success<List<XrayHistoryEntryDto>>) {
+        return getHistoryByKind(kind, userId: userId, ownerUserId: ownerUserId);
+      }
+
+      final entries = List<XrayHistoryEntryDto>.from(result.value)
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      _replaceRemoteEntries(ownerId, kind, entries);
+      return getHistoryByKind(kind, ownerUserId: ownerId);
+    }
+
+    final result = await _audioRemoteDataSource!.fetchHistory(kind);
+    if (result is! Success<List<AudioHistoryEntryDto>>) {
       return getHistoryByKind(kind, userId: userId, ownerUserId: ownerUserId);
     }
 
-    final entries = List<XrayHistoryEntryDto>.from(result.value)
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final entries = List<AudioHistoryEntryDto>.from(result.value)
+      ..sort((a, b) => a.analyzedAt.compareTo(b.analyzedAt));
+    _replaceRemoteEntries(ownerId, kind, entries);
+    return getHistoryByKind(kind, ownerUserId: ownerId);
+  }
 
+
+  void _replaceRemoteEntries<T>(String ownerId, DiagnosisKind kind, List<T> entries) {
+    _writeRemoteBucket(ownerId, kind, entries);
+
+    if (kind == DiagnosisKind.stethoscope) {
+      final patientIds = entries
+          .whereType<AudioHistoryEntryDto>()
+          .map((entry) => (entry.patientId ?? '').trim())
+          .where((patientId) => patientId.isNotEmpty && patientId != ownerId)
+          .toSet();
+
+      for (final patientId in patientIds) {
+        final patientEntries = entries
+            .whereType<AudioHistoryEntryDto>()
+            .where((entry) => (entry.patientId ?? '').trim() == patientId)
+            .toList(growable: false);
+        _writeRemoteBucket(patientId, kind, patientEntries);
+      }
+    }
+  }
+
+  void _writeRemoteBucket<T>(String ownerId, DiagnosisKind kind, List<T> entries) {
     final bucket = _bucketKey(ownerId, kind.storageKey);
-    final items = entries.map((entry) => entry.toDiagnosisItem()).toList(growable: false);
+    final items = entries.map(_entryToDiagnosisItem).toList(growable: false);
     _itemsByBucket[bucket] = List<DiagnosisItem>.from(items);
 
     _clearStoredResults(ownerId, kind.storageKey);
     for (final entry in entries) {
-      final item = entry.toDiagnosisItem();
-      _itemResults[_itemResultKey(ownerId, kind.storageKey, item.id)] =
-          entry.toDiagnosisResult();
+      final item = _entryToDiagnosisItem(entry);
+      final result = _entryToDiagnosisResult(entry);
+      _itemResults[_itemResultKey(ownerId, kind.storageKey, item.id)] = result;
     }
 
     if (entries.isEmpty) {
       _lastResults.remove(_lastResultKey(ownerId, kind.storageKey));
-    } else {
-      _lastResults[_lastResultKey(ownerId, kind.storageKey)] =
-          entries.last.toDiagnosisResult();
+      return;
     }
 
-    return getHistoryByKind(kind, ownerUserId: ownerId);
+    _lastResults[_lastResultKey(ownerId, kind.storageKey)] =
+        _entryToDiagnosisResult(entries.last);
+  }
+
+  DiagnosisItem _entryToDiagnosisItem(dynamic entry) {
+    if (entry is XrayHistoryEntryDto) return entry.toDiagnosisItem();
+    if (entry is AudioHistoryEntryDto) return entry.toDiagnosisItem();
+    throw ArgumentError('Unsupported history entry type: ${entry.runtimeType}');
+  }
+
+  DiagnosisResult _entryToDiagnosisResult(dynamic entry) {
+    if (entry is XrayHistoryEntryDto) return entry.toDiagnosisResult();
+    if (entry is AudioHistoryEntryDto) return entry.toDiagnosisResult();
+    throw ArgumentError('Unsupported history entry type: ${entry.runtimeType}');
   }
 
   @override
@@ -119,6 +175,13 @@ class InMemoryDiagnosisHistoryRepository extends DiagnosisHistoryRepository {
     String? userId,
     String? ownerUserId,
   }) async {
+    // Cough and stethoscope histories come from the API, and the current
+    // backend does not expose a delete endpoint for them. Do not remove
+    // server-backed audio items locally because they would reappear on refresh.
+    if (_audioRemoteDataSource != null && _isRemoteAudioType(type)) {
+      return;
+    }
+
     final normalizedId = itemId.trim();
     if (normalizedId.isEmpty) return;
 
@@ -191,6 +254,13 @@ class InMemoryDiagnosisHistoryRepository extends DiagnosisHistoryRepository {
 
     final ownerId = _resolveUserId(userId, ownerUserId: ownerUserId);
     _itemResults[_itemResultKey(ownerId, type, normalizedId)] = result;
+  }
+
+
+  bool _isRemoteAudioType(String type) {
+    final normalized = type.trim().toLowerCase();
+    return normalized == DiagnosisKind.record.storageKey ||
+        normalized == DiagnosisKind.stethoscope.storageKey;
   }
 
   String _uid() {

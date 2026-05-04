@@ -543,6 +543,7 @@ class _StethoscopeScreenState extends State<StethoscopeScreen> {
               ownerUserId: ((latestItem.targetPatientId ?? '').trim().isEmpty)
                   ? null
                   : latestItem.targetPatientId,
+              allowDelete: false,
             ),
           ),
         );

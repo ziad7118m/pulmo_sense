@@ -57,7 +57,7 @@ class _MedicalDataScreenState extends State<MedicalDataScreen> {
       profile: profile,
       updatedLabel: profile == null ? null : formatNumericDate(profile.updatedAt),
     );
-    final canEditCurrent = auth.currentUser != null;
+    final canEditCurrent = auth.isDoctor && auth.currentUser != null;
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -101,13 +101,14 @@ class _MedicalDataScreenState extends State<MedicalDataScreen> {
                                   spacing: 12,
                                   runSpacing: 12,
                                   children: [
-                                    FilledButton.icon(
-                                      onPressed: medicalController.isSaving || !canEditCurrent
-                                          ? null
-                                          : () => _openEditor(),
-                                      icon: const Icon(Icons.edit_rounded),
-                                      label: const Text('Update lung risk factors'),
-                                    ),
+                                    if (canEditCurrent)
+                                      FilledButton.icon(
+                                        onPressed: medicalController.isSaving
+                                            ? null
+                                            : () => _openEditor(),
+                                        icon: const Icon(Icons.edit_rounded),
+                                        label: const Text('Update lung risk factors'),
+                                      ),
                                     OutlinedButton.icon(
                                       onPressed: _openHistory,
                                       icon: const Icon(Icons.history_rounded),

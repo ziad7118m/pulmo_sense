@@ -96,9 +96,11 @@ class _DiagnosisDetailsScreenState extends State<DiagnosisDetailsScreen> {
           ],
           const SizedBox(height: 16),
           DiagnosisDetailsActions(
-            canPlay: viewData.hasAudio,
+            // Hide the audio play button for history/API read-only results.
+            // Keep it available only for local review before sending/analyzing.
+            canPlay: widget.allowDelete && viewData.hasAudio,
             canDelete: widget.allowDelete,
-            onPlayAudio: viewData.hasAudio && viewData.audioPath != null
+            onPlayAudio: widget.allowDelete && viewData.hasAudio && viewData.audioPath != null
                 ? () => AudioPreviewSheet.show(context, viewData.audioPath!)
                 : null,
             onDelete: widget.allowDelete ? _deleteThisItem : null,
@@ -148,19 +150,19 @@ class _ReadOnlyNoticeCard extends StatelessWidget {
     final String title;
     final String message;
 
-    if (kind.isImaging && !isPatientOwnedView) {
+    if (!isPatientOwnedView) {
+      final label = kind.isImaging ? 'X-ray' : 'audio';
       title = 'API history item';
       message =
-          'This X-ray result is loaded from the API history, so delete is disabled here because there is no backend delete endpoint yet.';
-    } else if (kind.isImaging && isPatientOwnedView) {
+          'This $label result is loaded from the API history, so delete is disabled here because there is no backend delete endpoint yet.';
+    } else if (kind.isImaging) {
       title = 'Read-only patient result';
       message =
           'You are viewing this X-ray from a patient account, so edit and delete actions are hidden here.';
     } else {
-      final label = kind.isImaging ? 'X-ray' : 'audio';
-      title = 'Read-only view';
+      title = 'Read-only patient result';
       message =
-          'This $label result was opened from Patient Dashboard, so edit and delete actions are hidden here.';
+          'This audio result belongs to a patient account, so delete actions are hidden here.';
     }
 
     return Container(

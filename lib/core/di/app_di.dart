@@ -16,6 +16,7 @@ import 'package:lung_diagnosis_app/features/diagnosis/domain/repositories/diagno
 import 'package:lung_diagnosis_app/features/diagnosis/domain/usecases/analyze_audio_usecase.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/domain/usecases/analyze_record_usecase.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/domain/usecases/analyze_xray_usecase.dart';
+import 'package:lung_diagnosis_app/features/diagnosis/history/data/datasources/audio_history_remote_data_source.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/data/datasources/xray_history_remote_data_source.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/data/diagnosis_history_repository.dart';
 import 'package:lung_diagnosis_app/features/diagnosis/history/data/in_memory_diagnosis_history_repository.dart';
@@ -108,6 +109,8 @@ class AppDI {
       currentUserId: () => session.userId,
       xrayRemoteDataSource:
           config.useApi ? XrayHistoryRemoteDataSource(apiClient) : null,
+      audioRemoteDataSource:
+          config.useApi ? AudioHistoryRemoteDataSource(apiClient) : null,
     );
   }
 }

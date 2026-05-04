@@ -35,7 +35,7 @@ class DashboardMedicalProfileSection extends StatelessWidget {
           title: 'Medical factors',
           subtitle: medical == null
               ? isReadOnly
-                  ? 'This backend currently exposes lung risk factors for the signed-in account only.'
+                  ? 'You can view your saved lung risk factors here once they are available.'
                   : 'Your dashboard will show the latest backend lung risk factors after your next saved analysis.'
               : 'Latest factor snapshot from your backend lung risk history.',
           trailingLabel: medical == null ? null : updatedLabel,
@@ -45,10 +45,10 @@ class DashboardMedicalProfileSection extends StatelessWidget {
           EmptyStateCard(
             icon: isDoctor ? Icons.add_chart_rounded : Icons.health_and_safety_outlined,
             title: isReadOnly
-                ? 'No backend medical data for this patient view'
+                ? 'No backend medical data yet'
                 : 'No backend medical data yet',
             message: isReadOnly
-                ? 'Open the patient account directly if you need their own backend risk history. This app build does not map one user medical data onto another user.'
+                ? 'Patients can view saved lung risk data and risk history only. Editing lung risk factors is disabled for patient accounts.'
                 : 'Run the lung risk analysis once and the dashboard will automatically use the latest saved backend values.',
             actionText: isReadOnly ? null : 'Update lung risk factors',
             onAction: isReadOnly ? null : onAddMedicalData,

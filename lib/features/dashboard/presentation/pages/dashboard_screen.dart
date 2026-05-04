@@ -39,15 +39,15 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   Future<MedicalProfileRecord?>? _medicalFuture;
   String? _medicalOwnerId;
-  String? _xraySyncedOwnerId;
-  bool _isSyncingXray = false;
+  String? _diagnosisSyncedOwnerId;
+  bool _isSyncingDiagnosis = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _reloadMedicalIfNeeded(force: false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncXrayIfNeeded(force: false);
+      _syncDiagnosisIfNeeded(force: false);
     });
   }
 
@@ -57,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (oldWidget.patientView?.userId != widget.patientView?.userId) {
       _reloadMedicalIfNeeded(force: true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _syncXrayIfNeeded(force: true);
+        _syncDiagnosisIfNeeded(force: true);
       });
     }
   }
@@ -75,13 +75,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _medicalFuture = context.read<DashboardController>().loadMedicalProfile(ownerId);
   }
 
-  Future<void> _syncXrayIfNeeded({required bool force}) async {
-    if (widget.patientView != null || _isSyncingXray) {
+  Future<void> _syncDiagnosisIfNeeded({required bool force}) async {
+    if (_isSyncingDiagnosis) {
       return;
     }
 
     final repository = context.read<DiagnosisHistoryRepository>();
-    if (!repository.supportsRemoteSync(DiagnosisKind.xray)) {
+    final supportedKinds = DiagnosisKind.values
+        .where(repository.supportsRemoteSync)
+        .toList(growable: false);
+    if (supportedKinds.isEmpty) {
       return;
     }
 
@@ -91,21 +94,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       patientView: widget.patientView,
     );
     final normalizedOwnerId = (ownerId ?? '').trim();
-    if (normalizedOwnerId.isEmpty) {
+    final remoteOwnerId = (auth.currentUser?.id ?? normalizedOwnerId).trim();
+    if (normalizedOwnerId.isEmpty || remoteOwnerId.isEmpty) {
       return;
     }
 
-    if (!force && _xraySyncedOwnerId == normalizedOwnerId) {
+    final syncKey = '$remoteOwnerId->$normalizedOwnerId';
+    if (!force && _diagnosisSyncedOwnerId == syncKey) {
       return;
     }
 
-    _isSyncingXray = true;
-    await repository.syncRemoteHistoryByKind(
-      DiagnosisKind.xray,
-      userId: normalizedOwnerId,
-    );
-    _isSyncingXray = false;
-    _xraySyncedOwnerId = normalizedOwnerId;
+    _isSyncingDiagnosis = true;
+    try {
+      for (final kind in supportedKinds) {
+        await repository.syncRemoteHistoryByKind(
+          kind,
+          userId: remoteOwnerId,
+        );
+      }
+      _diagnosisSyncedOwnerId = syncKey;
+    } finally {
+      _isSyncingDiagnosis = false;
+    }
 
     if (!mounted) return;
     setState(() {});
@@ -113,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _pushAndRefresh(Widget page) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-    await _syncXrayIfNeeded(force: true);
+    await _syncDiagnosisIfNeeded(force: true);
     if (!mounted) return;
     setState(() {
       _reloadMedicalIfNeeded(force: true);
@@ -156,12 +166,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       patientView: widget.patientView,
     );
 
-    if (widget.patientView == null &&
-        viewData.ownerId != null &&
-        viewData.ownerId != _xraySyncedOwnerId &&
-        !_isSyncingXray) {
+    if (viewData.ownerId != null &&
+        (_diagnosisSyncedOwnerId?.endsWith('->${viewData.ownerId}') != true) &&
+        !_isSyncingDiagnosis) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _syncXrayIfNeeded(force: false);
+        _syncDiagnosisIfNeeded(force: false);
       });
     }
 
@@ -169,6 +178,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _medicalOwnerId = viewData.ownerId;
       _medicalFuture = controller.loadMedicalProfile(viewData.ownerId);
     }
+
+    final canEditMedicalData = auth.isDoctor && !viewData.isReadOnly;
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -206,18 +217,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       DashboardMedicalProfileSection(
                         medical: medical,
                         isDoctor: viewData.ownerIsDoctor,
-                        isReadOnly: viewData.isReadOnly,
+                        isReadOnly: viewData.isReadOnly || !auth.isDoctor,
                         updatedLabel: medical == null ? null : 'Updated ${_relativeDate(medical.updatedAt)}',
-                        onAddMedicalData: viewData.isReadOnly
-                            ? null
-                            : () => _pushAndRefresh(
+                        onAddMedicalData: canEditMedicalData
+                            ? () => _pushAndRefresh(
                                   const AddMedicalDataScreen(
                                     initialTargetMode: MedicalTargetMode.me,
                                   ),
-                                ),
-                        onOpenMedicalData: viewData.isReadOnly
-                            ? null
-                            : () => _pushAndRefresh(const MedicalDataScreen()),
+                                )
+                            : null,
+                        onOpenMedicalData: () => _pushAndRefresh(const MedicalDataScreen()),
                       ),
                       const SizedBox(height: 18),
                       DashboardLatestDiagnosisSection(

@@ -103,6 +103,7 @@ class _AddMedicalDataScreenState extends State<AddMedicalDataScreen> {
     final currentUser = auth.currentUser;
     final isSaving = context.watch<MedicalProfileController>().isSaving;
 
+
     if (currentUser == null) {
       return Scaffold(
         appBar: CustomAppBar(
@@ -117,6 +118,26 @@ class _AddMedicalDataScreenState extends State<AddMedicalDataScreen> {
               icon: Icons.lock_outline_rounded,
               title: 'Session expired',
               message: 'Please log in again before updating your lung risk factors.',
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!auth.isDoctor) {
+      return Scaffold(
+        appBar: CustomAppBar(
+          title: AppStrings.medicalData,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: EmptyStateCard(
+              icon: Icons.visibility_rounded,
+              title: 'Read-only medical data',
+              message: 'Patient accounts can only view saved lung risk data and risk history. Editing lung risk factors is disabled.',
             ),
           ),
         ),

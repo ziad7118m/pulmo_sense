@@ -184,6 +184,7 @@ class _RecordScreenState extends State<RecordScreen> {
             builder: (_) => DiagnosisDetailsScreen(
               kind: DiagnosisKind.record,
               item: latestItem,
+              allowDelete: false,
             ),
           ),
         );

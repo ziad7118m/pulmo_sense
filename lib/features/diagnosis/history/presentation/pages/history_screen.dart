@@ -144,7 +144,7 @@ class _DiagnosisHistoryScreenState extends State<DiagnosisHistoryScreen> {
               kind: widget.kind,
               item: item,
               ownerUserId: _ownerUserIdForItem(item),
-              allowDelete: widget.kind != DiagnosisKind.xray,
+              allowDelete: false,
             ),
           ),
         );

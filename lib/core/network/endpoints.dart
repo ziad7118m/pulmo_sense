@@ -1,9 +1,11 @@
 class Endpoints {
   // Diagnosis
-  static const String analyzeRecord = '/api/diagnosis/record';
-  static const String analyzeAudio = '/api/diagnosis/audio';
+  static const String analyzeRecord = '/api/Cough/analyze';
+  static const String analyzeAudio = '/api/Stethoscope/analyze';
   static const String analyzeXray = '/api/XRay/xray';
   static const String xrayHistory = '/api/XRay/history';
+  static const String coughHistory = '/api/Cough/history';
+  static const String stethoscopeHistory = '/api/Stethoscope/history';
   static const String diagnoses = '/api/diagnoses';
   static const String diagnosesLatest = '/api/diagnoses/latest';
   static const String lungRiskAnalyze = '/api/LungRisks/analyze';

@@ -95,7 +95,7 @@ class _HomePatientState extends State<HomePatient> {
       DiagnosisDetailsScreen(
         kind: kind,
         item: item,
-        allowDelete: kind != DiagnosisKind.xray,
+        allowDelete: false,
       ),
     );
   }

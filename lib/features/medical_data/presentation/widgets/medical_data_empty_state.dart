@@ -24,8 +24,8 @@ class MedicalDataEmptyState extends StatelessWidget {
             title: 'No backend lung risk data yet',
             message: canEdit
                 ? 'Run the backend lung risk analysis once and the latest saved factors will appear here automatically.'
-                : 'Sign in again, then run the backend lung risk analysis to populate this page.',
-            actionText: canEdit ? 'Add lung risk factors' : null,
+                : 'You can view your saved lung risk data here once it is available. Patients cannot edit or create lung risk factors from the app.',
+            actionText: canEdit ? 'Add lung risk factors' : 'Open risk history',
             onAction: canEdit ? onAddMedicalData : onOpenHistory,
           ),
         ),
